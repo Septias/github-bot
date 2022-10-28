@@ -37,10 +37,15 @@ impl Server {
 
 fn main() {
     let server = Arc::new(Mutex::new(Server::new()));
+    let cl1 = server.clone();
     web_server::new()
         .get(
             "/",
             Box::new(move |a, b| server.lock().unwrap().handler(a, b)),
+        )
+        .post(
+            "/",
+            Box::new(move |a, b| cl1.lock().unwrap().handler(a, b)),
         )
         .launch(8080);
 }

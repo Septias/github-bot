@@ -25,12 +25,13 @@ impl Server {
         request: web_server::Request,
         mut _response: web_server::Response,
     ) -> Response {
-        println!("wat");
-        self.storage += &format!(
+        let t = &format!(
             "< {}: {}>\n",
             make_str(request.get_method()),
             request.get_body()
         );
+        println!("{}", t);
+        self.storage += t;
         self.storage.clone().into()
     }
 }
@@ -43,9 +44,6 @@ fn main() {
             "/",
             Box::new(move |a, b| server.lock().unwrap().handler(a, b)),
         )
-        .post(
-            "/",
-            Box::new(move |a, b| cl1.lock().unwrap().handler(a, b)),
-        )
+        .post("/", Box::new(move |a, b| cl1.lock().unwrap().handler(a, b)))
         .launch(8080);
 }

@@ -1,9 +1,17 @@
 use std::sync::{Arc, Mutex};
 
-use web_server::{RequestHandler, Response};
+use web_server::{HttpMethod, Response};
 
 struct Server {
     storage: String,
+}
+
+fn make_str(httpmethod: HttpMethod) -> &'static str {
+    match httpmethod {
+        HttpMethod::GET => "get",
+        HttpMethod::POST => "post",
+        _ => "some method",
+    }
 }
 
 impl Server {
@@ -15,9 +23,13 @@ impl Server {
     fn handler(
         &mut self,
         request: web_server::Request,
-        mut response: web_server::Response,
+        mut _response: web_server::Response,
     ) -> Response {
-        self.storage += &request.get_body();
+        self.storage += &format!(
+            "< {}: {}>\n",
+            make_str(request.get_method()),
+            request.get_body()
+        );
         self.storage.clone().into()
     }
 }

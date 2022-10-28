@@ -25,6 +25,7 @@ impl Server {
         request: web_server::Request,
         mut _response: web_server::Response,
     ) -> Response {
+        print!("wat");
         self.storage += &format!(
             "< {}: {}>\n",
             make_str(request.get_method()),

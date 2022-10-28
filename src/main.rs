@@ -44,6 +44,6 @@ fn main() {
             "/",
             Box::new(move |a, b| server.lock().unwrap().handler(a, b)),
         )
-        .post("/", Box::new(move |a, b| cl1.lock().unwrap().handler(a, b)))
+        .post("/receive", Box::new(move |a, b| cl1.lock().unwrap().handler(a, b)))
         .launch(8080);
 }

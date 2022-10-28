@@ -8,4 +8,4 @@ edition = "2021"
 anyhow = "1.0.66"
 deltachat = { git = "https://github.com/deltachat/deltachat-core-rust", tag="1.98.0"}
 tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros", "signal"] }
-web_server = {path="./server"}
+web_server = '*'

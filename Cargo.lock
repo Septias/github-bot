@@ -3173,6 +3173,8 @@ dependencies = [
 [[package]]
 name = "web_server"
 version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "720326ab28ca0ce35d30275de9d8a4b084399247a54d426844a040ae2ab66682"
 
 [[package]]
 name = "weezl"

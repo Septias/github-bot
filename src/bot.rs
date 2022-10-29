@@ -12,7 +12,7 @@ use log::{debug, error, info, warn};
 use std::{env, sync::Arc};
 use tokio::{
     signal,
-    sync::oneshot::{self, Receiver},
+    sync::mpsc::{self, Receiver},
 };
 
 use crate::{
@@ -47,7 +47,7 @@ impl Bot {
             info!("configuration done");
         }
 
-        let (tx, rx) = oneshot::channel();
+        let (tx, rx) = mpsc::channel(100);
 
         Self {
             dc_ctx: ctx,

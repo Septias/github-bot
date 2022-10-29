@@ -1,17 +1,3 @@
-/*
-Request URL: http://188.68.57.24:8080/receive
-Request method: POST
-Accept: 
-content-type: application/json
-User-Agent: GitHub-Hookshot/ede37db
-X-GitHub-Delivery: 25ec21b0-576c-11ed-83cd-abde7a5e2dc1
-X-GitHub-Event: pull_request
-X-GitHub-Hook-ID: 385934421
-X-GitHub-Hook-Installation-Target-ID: 558781383
-X-GitHub-Hook-Installation-Target-Type: repository
-X-Hub-Signature: sha1=3b6ebb42773afabd6344ddda2f0ee0f45d3f240e
-X-Hub-Signature-256: sha256=ea796226bccffbeff32aed33300bac9d610e318d1e6b21783b9db4ef0f40b19d
-*/
 {
     "action": "opened",
     "number": 2,

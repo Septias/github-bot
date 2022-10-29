@@ -11,5 +11,6 @@ tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros", "signal"]
 web_server = '*'
 clap = {version="*", features=["derive", "cargo"]}
 serde_json = "*"
-json = "*"
+serde = "*"
 thiserror="*"
+log = "*"

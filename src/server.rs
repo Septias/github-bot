@@ -13,7 +13,10 @@ fn make_str(httpmethod: HttpMethod) -> &'static str {
     }
 }
 
-enum Event {}
+enum Event {
+    IssueCreated { user: String },
+    
+}
 
 impl Server {
     fn new() -> Self {

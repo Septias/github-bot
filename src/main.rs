@@ -1,3 +1,4 @@
+#![allow(unused)]
 mod handler;
 mod parser;
 mod server;

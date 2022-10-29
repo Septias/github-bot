@@ -3,23 +3,12 @@ use serde::{Deserialize, Serialize};
 use std::{
     string::ParseError,
     sync::{Arc, Mutex},
+    thread,
 };
 use thiserror::Error;
-use web_server::{HttpMethod, Request, Response};
+use tokio::sync::oneshot::Sender;
 
 use self::{issue::IssueEvent, pr::PREvent};
-
-struct Server {
-    storage: String,
-}
-
-fn make_str(httpmethod: HttpMethod) -> &'static str {
-    match httpmethod {
-        HttpMethod::GET => "get",
-        HttpMethod::POST => "post",
-        _ => "some method",
-    }
-}
 
 #[derive(Error, Debug)]
 enum Error {
@@ -39,7 +28,7 @@ pub struct User {
 }
 
 #[derive(Debug)]
-enum Event {
+pub enum WebhookEvent {
     Issue(IssueEvent),
     PR(PREvent),
 }
@@ -75,6 +64,38 @@ mod issue {
     }
 }
 
+pub struct Server {
+    channel: Sender<WebhookEvent>,
+    server: Arc<HttpServer>,
+}
+
+impl Server {
+    pub fn new(channel: Sender<WebhookEvent>) -> Self {
+        let server = Arc::new(web_server::new().post(
+            "/receive",
+            Box::new(|req, resp| {
+                receive_webhoook(req);
+                resp
+            }),
+        ));
+        Self { channel, server }
+    }
+
+    pub fn start(&self) -> tokio::task::JoinHandle<()> {
+        let server = self.server.clone();
+        tokio::spawn(async move {
+            server.launch(8080);
+        })
+    }
+
+    pub fn stop(self) {
+        let mut server = Arc::try_unwrap(self.server)
+            .map_err(|_| anyhow!("well"))
+            .unwrap();
+        server.close()
+    }
+}
+
 mod pr {
     use serde::{Deserialize, Serialize};
 
@@ -102,29 +123,19 @@ mod pr {
     }
 }
 
-fn receive_webhoook(req: Request) -> Result<Event, Error> {
+fn receive_webhoook(req: Request) -> Result<WebhookEvent, Error> {
     match req.params.get("X-GitHub-Event") {
-        Some(event_type) if event_type == "pull_request" => Ok(Event::Issue(
+        Some(event_type) if event_type == "pull_request" => Ok(WebhookEvent::Issue(
             serde_json::from_str::<IssueEvent>(&req.get_body())?,
         )),
         Some(event_type) if event_type == "issue" => {
-            Ok(Event::PR(serde_json::from_str::<PREvent>(&req.get_body())?))
+            Ok(WebhookEvent::PR(serde_json::from_str::<PREvent>(
+                &req.get_body(),
+            )?))
         }
         Some(_) => Err(Error::NotCovered),
         None => Err(Error::Other(anyhow!("Missing header `X-GitHub-Event`"))),
     }
-}
-
-pub fn start_server() {
-    web_server::new()
-        .post(
-            "/receive",
-            Box::new(|req, resp| {
-                receive_webhoook(req);
-                resp
-            }),
-        )
-        .launch(8080);
 }
 
 #[cfg(test)]
@@ -135,7 +146,7 @@ mod tests {
         User,
     };
 
-    use super::Event;
+    use super::WebhookEvent;
 
     #[test]
     fn test_issue_closed() {

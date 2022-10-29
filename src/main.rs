@@ -1,10 +1,16 @@
 #![allow(unused)]
-mod handler;
+mod bot;
 mod parser;
 mod server;
+mod utils;
+use bot::Bot;
 use parser::test;
-use server::start_server;
+use tokio::signal;
 
-fn main() {
-    start_server()
+#[tokio::main]
+async fn main() {
+    let bot = Bot::new().await;
+    bot.start().await;
+    signal::ctrl_c().await.unwrap();
+    bot.stop().await;
 }

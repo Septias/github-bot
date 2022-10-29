@@ -15,7 +15,6 @@ fn make_str(httpmethod: HttpMethod) -> &'static str {
 
 enum Event {
     IssueCreated { user: String },
-    
 }
 
 impl Server {
@@ -39,7 +38,7 @@ impl Server {
     }
 }
 
-fn start_server() {
+pub fn start_server() {
     let server = Arc::new(Mutex::new(Server::new()));
     web_server::new()
         .get("/", {

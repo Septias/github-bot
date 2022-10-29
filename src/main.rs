@@ -3,7 +3,8 @@ mod handler;
 mod parser;
 mod server;
 use parser::test;
+use server::start_server;
 
 fn main() {
-    test()
+    start_server()
 }

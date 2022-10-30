@@ -1,6 +1,5 @@
 use anyhow::{anyhow, bail};
 use log::error;
-use serde::{Deserialize, Serialize};
 use std::{
     string::ParseError,
     sync::{Arc, Mutex},
@@ -10,7 +9,7 @@ use thiserror::Error;
 use tide::{Request, Server as TideServer};
 use tokio::sync::mpsc::Sender;
 
-use self::{issue::IssueEvent, pr::PREvent};
+use crate::shared::{issue::IssueEvent, pr::PREvent, WebhookEvent};
 
 #[derive(Error, Debug)]
 enum Error {
@@ -24,48 +23,6 @@ enum Error {
     Other(#[from] anyhow::Error),
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct User {
-    pub login: String,
-}
-
-#[derive(Debug)]
-pub enum WebhookEvent {
-    Issue(IssueEvent),
-    PR(PREvent),
-}
-mod issue {
-    use serde::{Deserialize, Serialize};
-
-    use super::User;
-
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
-    #[serde(rename_all = "lowercase")]
-    pub enum IssueAction {
-        Opened,
-        Edited,
-        Deleted,
-        Pinned,
-        Unpinned,
-        Closed,
-        Reopened,
-        Assigned,
-        Unassigned,
-        Labeled,
-        Unlabeled,
-        Locked,
-        Unlocked,
-        Transferred,
-        Milestoned,
-        Demilestoned,
-    }
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
-    pub struct IssueEvent {
-        pub action: IssueAction,
-        pub sender: User,
-    }
-}
-
 #[derive(Clone)]
 pub struct ServerState {
     pub channel: Arc<Sender<WebhookEvent>>,
@@ -76,7 +33,7 @@ pub struct Server {
 }
 
 async fn handler(mut req: Request<ServerState>) -> tide::Result {
-    let event = match receive_webhoook(&mut req).await {
+    match receive_webhoook(&mut req).await {
         Ok(event) => {
             req.state().channel.send(event).await;
         }
@@ -97,38 +54,11 @@ impl Server {
     pub fn start(&self) -> tokio::task::JoinHandle<()> {
         let server = self.server.clone();
         tokio::spawn(async move {
-            server.listen("0.0.0.0:8080");
+            server.listen("0.0.0.0:8080").await;
         })
     }
 
     pub fn stop(self) {}
-}
-
-mod pr {
-    use serde::{Deserialize, Serialize};
-
-    use super::User;
-
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
-    #[serde(rename_all = "lowercase")]
-    pub enum PRAction {
-        Opened,
-        Edited,
-        Closed,
-        Reopened,
-        Assigned,
-        Unassigned,
-        ReviewRequested,
-        ReviewRequestRemoved,
-        Labeled,
-        Unlabeled,
-        Synchronized,
-    }
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
-    pub struct PREvent {
-        pub action: PRAction,
-        pub sender: User,
-    }
 }
 
 async fn receive_webhoook(req: &mut Request<ServerState>) -> Result<WebhookEvent, Error> {
@@ -148,13 +78,11 @@ async fn receive_webhoook(req: &mut Request<ServerState>) -> Result<WebhookEvent
 
 #[cfg(test)]
 mod tests {
-    use crate::server::{
+    use crate::shared::{
         issue::{IssueAction, IssueEvent},
         pr::{PRAction, PREvent},
         User,
     };
-
-    use super::WebhookEvent;
 
     #[test]
     fn test_issue_closed() {

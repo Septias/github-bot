@@ -1,9 +1,9 @@
-use clap::{arg, command, Parser, Subcommand, ValueEnum};
+use clap::{arg, command, Parser, Subcommand};
 
 use crate::shared::{issue::IssueAction, pr::PRAction};
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author = None, version = None, about = None, long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -11,33 +11,33 @@ pub struct Cli {
 
 #[derive(Subcommand, PartialEq, Debug)]
 pub enum Commands {
-    /// Subscribe to a repository event
+    /// Subscribe to an event
     Subscribe {
         repo: usize,
-
-        #[arg(value_enum)]
-        family: EventFamily,
-
-        #[arg(value_enum)]
-        action: IssueAction,
+        #[command(subcommand)]
+        family: Family,
     },
 
-    /// Unsubscribe from a repository event
+    /// Unsubscribe from an event
     Unsubscribe {
         repo: String,
-
-        #[arg(value_enum)]
-        family: EventFamily,
-
-        #[arg(value_enum)]
-        pr_action: PRAction,
+        #[command(subcommand)]
+        family: Family,
     },
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-pub enum EventFamily {
-    Issues,
-    PR,
+#[derive(Subcommand, PartialEq, Debug)]
+pub enum Family {
+    // Subscribe to an PR event
+    PR {
+        #[arg(value_enum)]
+        pr_action: PRAction,
+    },
+    // Subscribe to an issue event
+    Issue {
+        #[arg(value_enum)]
+        issue_action: IssueAction,
+    },
 }
 
 #[cfg(test)]
@@ -46,13 +46,14 @@ mod tests {
 
     #[test]
     fn test_listen_issue_pull() {
-        let cli = Cli::parse_from("THROWAWAY subscribe 558781383 issues opened".split(" "));
+        let cli = Cli::parse_from("wat subscribe 558781383 issue opened".split(" "));
         assert_eq!(
             cli.command,
             Commands::Subscribe {
                 repo: 558781383,
-                family: EventFamily::Issues,
-                issue_action: IssueAction::Opened
+                family: Family::Issue {
+                    issue_action: IssueAction::Opened
+                }
             }
         )
     }

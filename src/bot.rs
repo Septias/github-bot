@@ -1,7 +1,7 @@
 use anyhow::{Context as _, Result};
 use clap::{CommandFactory, FromArgMatches};
 use deltachat::{
-    chat::{Chat, ChatId},
+    chat::ChatId,
     config::Config,
     context::Context,
     message::{Message, MsgId},
@@ -14,7 +14,7 @@ use tokio::sync::mpsc::{self, Receiver};
 
 use crate::{
     db::DB,
-    parser::Cli,
+    parser::{Cli, Family},
     server::Server,
     shared::{
         issue::{IssueAction, IssueEvent},
@@ -113,21 +113,24 @@ impl Bot {
     async fn dc_event_handler(ctx: &Context, state: Arc<State>, event: EventType) {
         match event {
             EventType::ConfigureProgress { progress, comment } => {
-                info!("Configuring progress: {progress} {comment:?}")
+                info!("DC: Configuring progress: {progress} {comment:?}")
             }
-            EventType::Info(msg) => info!("{msg}"),
-            EventType::Warning(msg) => warn!("{msg}"),
-            EventType::Error(msg) => error!("{msg}"),
+            EventType::Info(msg) => info!("DC: {msg}"),
+            EventType::Warning(msg) => warn!("DC: {msg}"),
+            EventType::Error(msg) => error!("DC: {msg}"),
             EventType::ConnectivityChanged => {
-                warn!("ConnectivityChanged: {:?}", ctx.get_connectivity().await)
+                warn!(
+                    "DC: ConnectivityChanged: {:?}",
+                    ctx.get_connectivity().await
+                )
             }
             EventType::IncomingMsg { chat_id, msg_id } => {
                 if let Err(err) = Self::handle_dc_message(ctx, state, chat_id, msg_id).await {
-                    error!("error handling message: {err}");
+                    error!("DC: error handling message: {err}");
                 }
             }
             other => {
-                debug!("[unhandled event] {other:?}");
+                debug!("DC: [unhandled event] {other:?}");
             }
         }
     }
@@ -141,16 +144,13 @@ impl Bot {
         let msg = Message::load_from_db(ctx, msg_id).await?;
         if let Some(text) = msg.get_text() {
             if text.chars().nth(0).unwrap() == '!' {
-                debug!("handling user request {:?}", text);
 
                 let mut matches = <Cli as CommandFactory>::command()
-                    .get_matches_from(once("throwaway").chain(text[1..].split(' ')));
-                let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches);
-
-                match res {
-                    Ok(cli) => state.db.add_subscriber(cli.command, chat_id).await,
-                    Err(e) => error!("{e}"),
-                }
+                    .try_get_matches_from(once("throwaway").chain(text[1..].split(' ')))?;
+                let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
+                
+                info!("adding subscriber");
+                state.db.add_subscriber(res.command, chat_id).await
             }
         }
 
@@ -158,8 +158,7 @@ impl Bot {
     }
 
     async fn handle_webhook(state: Arc<State>, event: WebhookEvent) {
-        debug!("Handling webhook event {}", event.event_type());
-
+        info!("Handling webhook event {}", event);
         match event {
             WebhookEvent::Issue(IssueEvent {
                 sender,
@@ -168,18 +167,23 @@ impl Bot {
             }) => match action {
                 IssueAction::Opened => {
                     format!("User {} opened new issue", sender.login);
-                    let subs = state
+                    let _subs = state
                         .db
-                        .get_subscribers(repo.id, crate::db::WebhookAction::Issue(action))
+                        .get_subscribers(
+                            repo.id,
+                            Family::Issue {
+                                issue_action: action,
+                            },
+                        )
                         .await;
                 }
                 _ => (), // String::from("Event occured")
             },
-            WebhookEvent::PR(pr_event) => todo!(),
+            WebhookEvent::PR(_pr_event) => todo!(),
         };
     }
 
-    async fn send_msg_to_subscribers(chats: &[ChatId]) {}
+    async fn _send_msg_to_subscribers(_chats: &[ChatId]) {}
 
     pub async fn stop(self) {
         self.dc_ctx.stop_io().await;

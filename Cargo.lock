@@ -1453,24 +1453,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "deltachat-echo-bot"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap 4.0.18",
- "deltachat",
- "env_logger",
- "log",
- "serde",
- "serde_json",
- "strum_macros",
- "surrealdb",
- "thiserror",
- "tide",
- "tokio",
-]
-
-[[package]]
 name = "deltachat_derive"
 version = "2.0.0"
 source = "git+https://github.com/deltachat/deltachat-core-rust?tag=1.98.0#b6b2f453a0365d9b80043f8b3a3d6718aae01fa0"
@@ -2129,6 +2111,24 @@ name = "gimli"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22030e2c5a68ec659fde1e949a745124b48e6fa8b045b7ed5bd1fe4ccc5c4e5d"
+
+[[package]]
+name = "github-bot"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap 4.0.18",
+ "deltachat",
+ "env_logger",
+ "log",
+ "serde",
+ "serde_json",
+ "strum_macros",
+ "surrealdb",
+ "thiserror",
+ "tide",
+ "tokio",
+]
 
 [[package]]
 name = "glob"

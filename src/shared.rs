@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::Display;
 
 use self::{issue::IssueEvent, pr::PREvent};
 
@@ -7,20 +8,18 @@ pub struct User {
     pub login: String,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct Repository {
+    pub id: usize,
+    pub name: String,
+}
+
+#[derive(Debug, Display)]
 pub enum WebhookEvent {
     Issue(IssueEvent),
     PR(PREvent),
 }
 
-impl WebhookEvent {
-    pub fn event_type(&self) -> &str {
-        match self {
-            WebhookEvent::Issue(_) => "issue",
-            WebhookEvent::PR(_) => "PR",
-        }
-    }
-}
 pub mod issue {
     use clap::ValueEnum;
     use serde::{Deserialize, Serialize};
@@ -42,6 +41,7 @@ pub mod issue {
         Display,
     )]
     #[serde(rename_all = "lowercase")]
+    #[strum(serialize_all = "snake_case")]
     pub enum IssueAction {
         Opened,
         Edited,
@@ -89,6 +89,7 @@ pub mod pr {
         Display,
     )]
     #[serde(rename_all = "lowercase")]
+    #[strum(serialize_all = "snake_case")]
     pub enum PRAction {
         Opened,
         Edited,
@@ -110,8 +111,4 @@ pub mod pr {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Repository {
-    pub id: usize,
-    pub name: String,
-}
+

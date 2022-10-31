@@ -1,5 +1,5 @@
 [package]
-name = "deltachat-echo-bot"
+name = "github-bot"
 version = "0.1.0"
 authors = ["DeltaChatBot Contributers<https://github.com/deltachat-bot>"]
 edition = "2021"
@@ -8,12 +8,12 @@ edition = "2021"
 anyhow = "1.0.66"
 deltachat = { git = "https://github.com/deltachat/deltachat-core-rust", tag="1.98.0"}
 tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros", "signal"] }
-tide = "*"
-clap = {version="*", features=["derive", "cargo"]}
-serde_json = "*"
-serde = "*"
-thiserror="*"
-log = "*"
-env_logger = "*"
+tide = "0.16.0"
+clap = {version="4.0.18", features=["derive", "cargo"]}
+serde_json = "1.0.87"
+serde = "1.0.147"
+thiserror="1.0.37"
+log = "0.4.17"
+env_logger = "0.9.1"
 surrealdb = "1.0.0-beta.8"
-strum_macros = "*"
+strum_macros = "0.24.3"

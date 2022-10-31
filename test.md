@@ -1,0 +1,1 @@
+curl -X POST --data "@mock/issue_open.json" localhost:8080/receive --header "X-GitHub-Event: open"

@@ -18,7 +18,7 @@ use tokio::{
 
 use crate::{
     db::DB,
-    parser::{build_command, Cli, Commands, EventType as WebhookEventType},
+    parser::{Cli, Commands},
     server::Server,
     shared::WebhookEvent,
     utils::configure_from_env,
@@ -34,7 +34,6 @@ type RepositoryId = String;
 
 pub struct State {
     pub repos: HashMap<RepositoryId, GitRepository>,
-    pub command: Command,
     pub db: DB,
 }
 
@@ -77,7 +76,6 @@ impl Bot {
             dc_ctx: ctx,
             hook_receiver: Some(rx),
             state: Arc::new(State {
-                command: build_command(&repositories),
                 repos: repositories
                     .into_iter()
                     .map(|rep| (rep.id.clone(), rep))
@@ -153,7 +151,7 @@ impl Bot {
                 let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches);
 
                 match res {
-                    Ok(cli) => state.db.add_listener(cli.command, chat_id).await,
+                    Ok(cli) => state.db.add_subscriber(cli.command, chat_id).await,
                     Err(e) => error!("{e}"),
                 }
             }
@@ -169,21 +167,5 @@ impl Bot {
     pub async fn stop(self) {
         self.dc_ctx.stop_io().await;
         self.hook_server.stop()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use deltachat::test_utils::TestContext;
-
-    use super::*;
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn test_listen_issue_pull() {
-        let alice = TestContext::new_alice().await;
-        let bob = TestContext::new_bob().await;
-
-        // Alice sends instance and adds some text
-        let alice_chat = alice.create_chat(&bob).await;
-        
     }
 }

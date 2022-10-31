@@ -3,7 +3,13 @@ use clap::{
     Subcommand, ValueEnum,
 };
 
-use crate::bot::GitRepository;
+use crate::{
+    bot::GitRepository,
+    shared::{
+        issue::{IssueAction, IssueEvent},
+        pr::{PRAction, PREvent},
+    },
+};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -14,58 +20,33 @@ pub struct Cli {
 
 #[derive(Subcommand, PartialEq, Debug)]
 pub enum Commands {
-    /// Subscribe to a repository
+    /// Subscribe to a repository event
     Subscribe {
-        repo: i32,
+        repo: usize,
 
         #[arg(value_enum)]
-        family: Subscribeable,
+        family: EventFamily,
 
         #[arg(value_enum)]
-        event_type: EventType,
+        issue_action: IssueAction,
     },
+
+    /// Unsubscribe from a repository event
     Unsubscribe {
         repo: String,
 
         #[arg(value_enum)]
-        family: Subscribeable,
+        family: EventFamily,
 
         #[arg(value_enum)]
-        event_type: EventType,
+        pr_action: PRAction,
     },
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-pub enum EventType {
-    Push,
-    Pull,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-pub enum IssueActions {
-    Open,
-    Close,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-pub enum Subscribeable {
+pub enum EventFamily {
     Issues,
     PR,
-}
-
-pub fn build_command(repositories: &[GitRepository]) -> Command {
-    let repo_options = repositories
-        .iter()
-        .map(|repo| repo.name.as_str())
-        .collect::<Vec<_>>()
-        .as_slice();
-
-    command!().subcommand(
-        Command::new("subscribe")
-            .arg(arg!(<Subscribeable>).value_parser(value_parser!(Subscribeable)))
-            .arg(arg!(<IssueActions>).value_parser(value_parser!(IssueActions)))
-            .arg(Arg::new("repo")),
-    )
 }
 
 #[cfg(test)]
@@ -74,13 +55,13 @@ mod tests {
 
     #[test]
     fn test_listen_issue_pull() {
-        let cli = Cli::parse_from("THROWAWAY subscribe 558781383 issues pull".split(" "));
+        let cli = Cli::parse_from("THROWAWAY subscribe 558781383 issues opened".split(" "));
         assert_eq!(
             cli.command,
             Commands::Subscribe {
                 repo: 558781383,
-                family: Subscribeable::Issues,
-                event_type: EventType::Pull
+                family: EventFamily::Issues,
+                issue_action: IssueAction::Opened
             }
         )
     }

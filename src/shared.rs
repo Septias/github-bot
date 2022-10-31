@@ -22,11 +22,25 @@ impl WebhookEvent {
     }
 }
 pub mod issue {
+    use clap::ValueEnum;
     use serde::{Deserialize, Serialize};
+    use strum_macros::Display;
 
     use super::User;
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(
+        Copy,
+        Clone,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        ValueEnum,
+        Serialize,
+        Deserialize,
+        Debug,
+        Display,
+    )]
     #[serde(rename_all = "lowercase")]
     pub enum IssueAction {
         Opened,
@@ -54,11 +68,25 @@ pub mod issue {
 }
 
 pub mod pr {
+    use clap::ValueEnum;
     use serde::{Deserialize, Serialize};
+    use strum_macros::Display;
 
     use super::User;
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(
+        Copy,
+        Clone,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        ValueEnum,
+        Serialize,
+        Deserialize,
+        Debug,
+        Display,
+    )]
     #[serde(rename_all = "lowercase")]
     pub enum PRAction {
         Opened,

@@ -134,6 +134,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ansi_term"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d52a9bb7ec0cf484c551830a7ce27bd20d67eac647e1befb56b0be4ee39a55d2"
+dependencies = [
+ "winapi",
+]
+
+[[package]]
 name = "any_ascii"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -957,7 +966,7 @@ dependencies = [
  "indexmap",
  "strsim 0.10.0",
  "termcolor",
- "textwrap 0.16.0",
+ "textwrap",
 ]
 
 [[package]]
@@ -1390,8 +1399,8 @@ checksum = "3ee2393c4a91429dffb4bedf19f4d6abf27d8a732c8ce4980305d782e5426d57"
 [[package]]
 name = "deltachat"
 version = "1.98.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust?tag=1.98.0#b6b2f453a0365d9b80043f8b3a3d6718aae01fa0"
 dependencies = [
+ "ansi_term",
  "anyhow",
  "async-channel",
  "async-imap",
@@ -1441,7 +1450,8 @@ dependencies = [
  "strum",
  "strum_macros",
  "tagger",
- "textwrap 0.15.2",
+ "tempfile",
+ "textwrap",
  "thiserror",
  "tokio",
  "tokio-stream",
@@ -1472,7 +1482,6 @@ dependencies = [
 [[package]]
 name = "deltachat_derive"
 version = "2.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust?tag=1.98.0#b6b2f453a0365d9b80043f8b3a3d6718aae01fa0"
 dependencies = [
  "quote",
  "syn",
@@ -4542,20 +4551,14 @@ dependencies = [
 
 [[package]]
 name = "textwrap"
-version = "0.15.2"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7b3e525a49ec206798b40326a44121291b530c963cfb01018f63e135bac543d"
+checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 dependencies = [
  "smawk",
  "unicode-linebreak",
  "unicode-width",
 ]
-
-[[package]]
-name = "textwrap"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 
 [[package]]
 name = "thiserror"

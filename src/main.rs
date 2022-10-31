@@ -13,10 +13,9 @@ use tokio::signal;
 
 #[tokio::main]
 async fn main() {
-    Cli::parse();
-    /* env_logger::init();
+    env_logger::init();
     let mut bot = Bot::new().await;
     bot.start().await;
     signal::ctrl_c().await.unwrap();
-    bot.stop().await; */
+    bot.stop().await;
 }

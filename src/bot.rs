@@ -1,5 +1,5 @@
 use anyhow::{Context as _, Result};
-use clap::{Command, Parser};
+use clap::{Command, CommandFactory, FromArgMatches, Parser};
 use deltachat::{
     chat::{self, Chat, ChatId},
     config::Config,
@@ -10,7 +10,7 @@ use deltachat::{
     EventType, Events,
 };
 use log::{debug, error, info, warn};
-use std::{collections::HashMap, env, sync::Arc};
+use std::{collections::HashMap, env, iter::once, sync::Arc};
 use tokio::{
     signal,
     sync::mpsc::{self, Receiver},
@@ -147,12 +147,15 @@ impl Bot {
         if let Some(text) = msg.get_text() {
             if text.chars().nth(0).unwrap() == '!' {
                 debug!("handling user request {:?}", text);
-                /* let matches = state.command.clone().get_matches_from(text.split(' '));
-                if let Some(matches) = matches.subcommand_matches("subscribe") {
-                    match matches.get_one::<>(id)
-                } */
-                let cli = Cli::parse_from(text.split(' ')).command;
-                state.db.add_listener(cli, chat_id);
+
+                let mut matches = <Cli as CommandFactory>::command()
+                    .get_matches_from(once("throwaway").chain(text[1..].split(' ')));
+                let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches);
+
+                match res {
+                    Ok(cli) => state.db.add_listener(cli.command, chat_id).await,
+                    Err(e) => error!("{e}"),
+                }
             }
         }
 
@@ -166,5 +169,21 @@ impl Bot {
     pub async fn stop(self) {
         self.dc_ctx.stop_io().await;
         self.hook_server.stop()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use deltachat::test_utils::TestContext;
+
+    use super::*;
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_listen_issue_pull() {
+        let alice = TestContext::new_alice().await;
+        let bob = TestContext::new_bob().await;
+
+        // Alice sends instance and adds some text
+        let alice_chat = alice.create_chat(&bob).await;
+        
     }
 }

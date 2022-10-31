@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn test_listen_issue_pull() {
-        let cli = Cli::parse_from("subscribe 558781383 issues pull".split(" "));
+        let cli = Cli::parse_from("THROWAWAY subscribe 558781383 issues pull".split(" "));
         assert_eq!(
             cli.command,
             Commands::Subscribe {

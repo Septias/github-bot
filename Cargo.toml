@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.66"
-deltachat = { git = "https://github.com/deltachat/deltachat-core-rust", tag="1.98.0"}
+deltachat = { path = "../deltachat-core-rust"}
 tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros", "signal"] }
 tide = "*"
 clap = {version="*", features=["derive", "cargo"]}

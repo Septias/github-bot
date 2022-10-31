@@ -26,7 +26,7 @@ pub mod issue {
     use serde::{Deserialize, Serialize};
     use strum_macros::Display;
 
-    use super::User;
+    use super::{Repository, User};
 
     #[derive(
         Copy,
@@ -64,6 +64,7 @@ pub mod issue {
     pub struct IssueEvent {
         pub action: IssueAction,
         pub sender: User,
+        pub repository: Repository,
     }
 }
 
@@ -72,7 +73,7 @@ pub mod pr {
     use serde::{Deserialize, Serialize};
     use strum_macros::Display;
 
-    use super::User;
+    use super::{Repository, User};
 
     #[derive(
         Copy,
@@ -105,10 +106,12 @@ pub mod pr {
     pub struct PREvent {
         pub action: PRAction,
         pub sender: User,
+        pub repository: Repository,
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Repository {
-    id: String,
-    name: String,
+    pub id: usize,
+    pub name: String,
 }

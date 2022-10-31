@@ -1,13 +1,12 @@
-use std::collections::HashMap;
-
 use crate::{
     parser::{Commands, EventFamily},
     shared::{issue::IssueAction, pr::PRAction},
 };
 use deltachat::chat::ChatId;
+use log::info;
 use surrealdb::{Datastore, Session};
 
-pub enum WebhookActions {
+pub enum WebhookAction {
     Issue(IssueAction),
     Pr(PRAction),
 }
@@ -27,11 +26,14 @@ impl DB {
     }
     pub async fn init(&self) {
         let ast = include_str!("statements/initdb.sql");
-        let sess = self.db.execute(ast, &self.session, None, false).await;
+        self.db
+            .execute(ast, &self.session, None, false)
+            .await
+            .unwrap();
     }
 
-    async fn execute(&self, ast: &str) {
-        self.db.execute(ast, &self.session, None, false);
+    async fn execute(&self, ast: &str) -> Result<Vec<surrealdb::Response>, surrealdb::Error> {
+        self.db.execute(ast, &self.session, None, false).await
     }
 
     pub async fn add_subscriber(&self, command: Commands, chat: ChatId) {
@@ -41,21 +43,26 @@ impl DB {
                 issue_action,
                 family,
             } => match family {
-                EventFamily::Issues => (format!("pr_{}", issue_action), repo),
+                EventFamily::Issues => (format!("issue_{}", issue_action), repo),
                 EventFamily::PR => (format!("pr_{}", issue_action), repo),
             },
-            _ => panic!("trying to remove a listener is permitted"),
+            _ => panic!("you can't use `add_subscriber` to remove a subsriber"),
         };
-        self.execute(&format!("UPDATE {repo}:{repo} SET {list} += [{chat}]"))
-            .await;
+        self.execute(&format!(
+            "UPDATE {repo}:{repo} SET {list} += [{}]",
+            chat.to_u32()
+        ))
+        .await
+        .unwrap();
     }
 
-    pub async fn get_subscribers(&self, repo: usize, action: WebhookActions) {
+    pub async fn get_subscribers(&self, repo: usize, action: WebhookAction) {
         let list = match action {
-            WebhookActions::Issue(issue_action) => format!("issue_{issue_action}"),
-            WebhookActions::Pr(pr_action) => format!("pr_{pr_action}"),
+            WebhookAction::Issue(issue_action) => format!("issue_{issue_action}"),
+            WebhookAction::Pr(pr_action) => format!("pr_{pr_action}"),
         };
-        self.execute(&format!("SELECT {list} FROM {repo}:{repo}"))
-            .await;
+        let query = self.execute(&format!("SELECT {list} FROM {repo}")).await;
+
+        info!("{:?}", query);
     }
 }

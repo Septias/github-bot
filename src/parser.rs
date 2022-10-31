@@ -1,15 +1,6 @@
-use clap::{
-    arg, builder::PossibleValue, command, value_parser, Arg, ArgAction, Command, Parser,
-    Subcommand, ValueEnum,
-};
+use clap::{arg, command, Parser, Subcommand, ValueEnum};
 
-use crate::{
-    bot::GitRepository,
-    shared::{
-        issue::{IssueAction, IssueEvent},
-        pr::{PRAction, PREvent},
-    },
-};
+use crate::shared::{issue::IssueAction, pr::PRAction};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -28,7 +19,7 @@ pub enum Commands {
         family: EventFamily,
 
         #[arg(value_enum)]
-        issue_action: IssueAction,
+        action: IssueAction,
     },
 
     /// Unsubscribe from a repository event

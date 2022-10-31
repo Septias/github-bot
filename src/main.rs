@@ -1,4 +1,3 @@
-#![allow(unused)]
 mod bot;
 mod db;
 mod parser;
@@ -7,8 +6,6 @@ pub mod shared;
 mod utils;
 
 use bot::Bot;
-use clap::Parser;
-use parser::Cli;
 use tokio::signal;
 
 #[tokio::main]

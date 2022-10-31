@@ -1,10 +1,6 @@
-use anyhow::{anyhow, bail};
-use log::error;
-use std::{
-    string::ParseError,
-    sync::{Arc, Mutex},
-    thread,
-};
+use anyhow::anyhow;
+use log::{error, info};
+use std::sync::Arc;
 use thiserror::Error;
 use tide::{Request, Server as TideServer};
 use tokio::sync::mpsc::Sender;
@@ -35,7 +31,8 @@ pub struct Server {
 async fn handler(mut req: Request<ServerState>) -> tide::Result {
     match receive_webhoook(&mut req).await {
         Ok(event) => {
-            req.state().channel.send(event).await;
+            info!("received webhook");
+            req.state().channel.send(event).await.unwrap();
         }
         Err(err) => error!("{err}"),
     };
@@ -54,7 +51,7 @@ impl Server {
     pub fn start(&self) -> tokio::task::JoinHandle<()> {
         let server = self.server.clone();
         tokio::spawn(async move {
-            server.listen("0.0.0.0:8080").await;
+            server.listen("0.0.0.0:8080").await.unwrap();
         })
     }
 
@@ -62,17 +59,15 @@ impl Server {
 }
 
 async fn receive_webhoook(req: &mut Request<ServerState>) -> Result<WebhookEvent, Error> {
-    match req.param("X-GitHub-Event") {
-        Ok(event_type) if event_type == "pull_request" => Ok(WebhookEvent::Issue(
+    match req.header("X-GitHub-Event") {
+        Some(event_type) if event_type == "issues" => Ok(WebhookEvent::Issue(
             serde_json::from_str::<IssueEvent>(&req.body_string().await.unwrap())?,
         )),
-        Ok(event_type) if event_type == "issue" => {
-            Ok(WebhookEvent::PR(serde_json::from_str::<PREvent>(
-                &req.body_string().await.unwrap(),
-            )?))
-        }
-        Ok(_) => Err(Error::NotCovered),
-        Err(_) => Err(Error::Other(anyhow!("Missing header `X-GitHub-Event`"))),
+        Some(event_type) if event_type == "pull_request" => Ok(WebhookEvent::PR(
+            serde_json::from_str::<PREvent>(&req.body_string().await.unwrap())?,
+        )),
+        Some(_) => Err(Error::NotCovered),
+        None => Err(Error::Other(anyhow!("Missing header `X-GitHub-Event`"))),
     }
 }
 
@@ -81,7 +76,7 @@ mod tests {
     use crate::shared::{
         issue::{IssueAction, IssueEvent},
         pr::{PRAction, PREvent},
-        User,
+        Repository, User,
     };
 
     #[test]
@@ -93,6 +88,10 @@ mod tests {
                 action: IssueAction::Closed,
                 sender: User {
                     login: "Septias".to_owned()
+                },
+                repository: Repository {
+                    id: 558781383,
+                    name: "testrepo".to_owned(),
                 }
             }
         );
@@ -106,10 +105,16 @@ mod tests {
                 action: IssueAction::Opened,
                 sender: User {
                     login: "Septias".to_owned()
+                },
+                repository: Repository {
+                    id: 558781383,
+                    name: "testrepo".to_owned(),
                 }
             }
         );
     }
+
+    #[test]
     fn test_pr_closed() {
         let mock = include_str!("../mock/pr_closed.json");
         assert_eq!(
@@ -118,6 +123,10 @@ mod tests {
                 action: PRAction::Closed,
                 sender: User {
                     login: "Septias".to_owned()
+                },
+                repository: Repository {
+                    id: 558781383,
+                    name: "testrepo".to_owned(),
                 }
             }
         );
@@ -131,6 +140,10 @@ mod tests {
                 action: PRAction::Opened,
                 sender: User {
                     login: "Septias".to_owned()
+                },
+                repository: Repository {
+                    id: 558781383,
+                    name: "testrepo".to_owned(),
                 }
             }
         );

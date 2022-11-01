@@ -1,8 +1,10 @@
 use crate::parser::{Commands, Family};
 use anyhow::Result;
 use deltachat::chat::ChatId;
-use log::info;
-use surrealdb::{Datastore, Session};
+use surrealdb::{
+    sql::{Number, Value},
+    Datastore, Session,
+};
 
 pub struct DB {
     db: Datastore,
@@ -26,6 +28,7 @@ impl DB {
         self.db.execute(&ast, &self.session, None, false).await
     }
 
+    /// Return which db_table has to be queried for the specific action
     fn get_list_prefix(family: Family) -> String {
         match family {
             crate::parser::Family::PR { pr_action } => format!("pr_{}", pr_action),
@@ -48,20 +51,55 @@ impl DB {
         }
     }
 
+    /// Add a ChatId as subscriber to an action
     pub async fn add_subscriber(&self, command: Commands, chat: ChatId) {
         self.change_subscriber(command, chat, true).await;
     }
 
-    pub async fn _remove_subscriber(&self, command: Commands, chat: ChatId) {
+    /// Remove a ChatId from subscribers to an action
+    pub async fn remove_subscriber(&self, command: Commands, chat: ChatId) {
         self.change_subscriber(command, chat, false).await;
     }
 
-    pub async fn get_subscribers(&self, repo: usize, family: Family) -> Result<()> {
+    /// Return all ChatIds which subscribed to to an action
+    pub async fn get_subscribers(&self, repo: usize, family: Family) -> Result<Vec<ChatId>> {
         let list = Self::get_list_prefix(family);
-        let query = self
+        let mut query = self
             .execute(&format!("SELECT {list} FROM {repo}:{repo}"))
             .await?;
-        info!("{:#?}", query[0]);
-        Ok(())
+
+        let rsp1 = query.remove(0);
+        if let Ok(val) = rsp1.result {
+            let obj = unwrap_array(&val);
+            if let Value::Object(obj) = obj {
+                let numbers = unwrap_array(obj.values().nth(0).unwrap());
+                if let Value::Array(arr) = numbers {
+                    let ids = arr
+                        .iter()
+                        .map(|num| {
+                            if let Value::Number(num) = num {
+                                if let Number::Int(chat_id) = num {
+                                    return ChatId::new(*chat_id as u32);
+                                }
+                            }
+                            panic!("can't convert number");
+                        })
+                        .collect::<Vec<_>>();
+                    return Ok(ids);
+                };
+            };
+        };
+        Ok(vec![])
     }
+}
+
+/// Takes a surreal::Value and tries to unwrap it as long as
+/// It only is an array with one element which is another array
+fn unwrap_array(val: &Value) -> &Value {
+    if let Value::Array(arr) = val {
+        if arr.len() == 1 && !matches!(arr[0], Value::Number(_)) {
+            return unwrap_array(&arr[0]);
+        }
+    };
+    val
 }

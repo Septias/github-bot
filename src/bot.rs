@@ -1,7 +1,7 @@
 use anyhow::{Context as _, Result};
 use clap::{CommandFactory, FromArgMatches};
 use deltachat::{
-    chat::ChatId,
+    chat::{send_text_msg, ChatId},
     config::Config,
     context::Context,
     message::{Message, MsgId},
@@ -14,13 +14,10 @@ use tokio::sync::mpsc::{self, Receiver};
 
 use crate::{
     db::DB,
-    parser::{Cli, Family},
+    parser::{Cli, Commands, Family},
     server::Server,
-    shared::{
-        issue::{IssueAction, IssueEvent},
-        WebhookEvent,
-    },
-    utils::configure_from_env,
+    shared::{issue::IssueEvent, pr::PREvent, WebhookEvent},
+    utils::{configure_from_env, send_text_to_all},
 };
 
 #[derive(Debug, Default)]
@@ -103,9 +100,12 @@ impl Bot {
         // start webhook-handler
         let mut thing_receiver = self.hook_receiver.take().unwrap();
         let state = self.state.clone();
+        let ctx = self.dc_ctx.clone();
         tokio::spawn(async move {
             while let Some(event) = thing_receiver.recv().await {
-                Self::handle_webhook(state.clone(), event).await
+                if let Err(e) = Self::handle_webhook(state.clone(), &ctx, event).await {
+                    error!("{e}")
+                }
             }
         });
     }
@@ -115,7 +115,7 @@ impl Bot {
             EventType::ConfigureProgress { progress, comment } => {
                 info!("DC: Configuring progress: {progress} {comment:?}")
             }
-            EventType::Info(msg) => info!("DC: {msg}"),
+            EventType::Info(..) => (), //info!("DC: {msg}"),
             EventType::Warning(msg) => warn!("DC: {msg}"),
             EventType::Error(msg) => error!("DC: {msg}"),
             EventType::ConnectivityChanged => {
@@ -144,43 +144,75 @@ impl Bot {
         let msg = Message::load_from_db(ctx, msg_id).await?;
         if let Some(text) = msg.get_text() {
             if text.chars().nth(0).unwrap() == '!' {
-
-                let mut matches = <Cli as CommandFactory>::command()
-                    .try_get_matches_from(once("throwaway").chain(text[1..].split(' ')))?;
-                let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
-                
-                info!("adding subscriber");
-                state.db.add_subscriber(res.command, chat_id).await
+                match <Cli as CommandFactory>::command()
+                    .try_get_matches_from(once("throwaway").chain(text[1..].split(' ')))
+                {
+                    Ok(mut matches) => {
+                        let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
+                        if matches!(res.command, Commands::Subscribe { .. }) {
+                            info!("adding subscriber");
+                            state.db.add_subscriber(res.command, chat_id).await
+                        } else {
+                            info!("removing subscriber");
+                            state.db.remove_subscriber(res.command, chat_id).await
+                        };
+                    }
+                    Err(err) => drop(send_text_msg(ctx, chat_id, err.to_string()).await.unwrap()),
+                };
             }
         }
 
         Ok(())
     }
 
-    async fn handle_webhook(state: Arc<State>, event: WebhookEvent) {
+    async fn handle_webhook(
+        state: Arc<State>,
+        ctx: &Context,
+        event: WebhookEvent,
+    ) -> anyhow::Result<()> {
         info!("Handling webhook event {}", event);
         match event {
             WebhookEvent::Issue(IssueEvent {
                 sender,
                 action,
-                repository: repo,
-            }) => match action {
-                IssueAction::Opened => {
-                    format!("User {} opened new issue", sender.login);
-                    let _subs = state
-                        .db
-                        .get_subscribers(
-                            repo.id,
-                            Family::Issue {
-                                issue_action: action,
-                            },
-                        )
-                        .await;
-                }
-                _ => (), // String::from("Event occured")
-            },
-            WebhookEvent::PR(_pr_event) => todo!(),
+                repository,
+            }) => {
+                let subs = state
+                    .db
+                    .get_subscribers(
+                        repository.id,
+                        Family::Issue {
+                            issue_action: action,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                send_text_to_all(
+                    &subs,
+                    &format!("User {} {action} issue", sender.login),
+                    ctx,
+                )
+                .await?;
+            }
+            WebhookEvent::PR(PREvent {
+                action,
+                sender,
+                repository,
+            }) => {
+                let subs = state
+                    .db
+                    .get_subscribers(repository.id, Family::PR { pr_action: action })
+                    .await
+                    .unwrap();
+                send_text_to_all(
+                    &subs,
+                    &format!("User {} {action} PR", sender.login),
+                    ctx,
+                )
+                .await?;
+            }
         };
+        Ok(())
     }
 
     async fn _send_msg_to_subscribers(_chats: &[ChatId]) {}

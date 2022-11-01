@@ -174,6 +174,7 @@ impl Bot {
                 sender,
                 action,
                 repository,
+                issue,
             }) => {
                 let subs = state
                     .db
@@ -185,26 +186,37 @@ impl Bot {
                     )
                     .await
                     .unwrap();
-                send_text_to_all(&subs, &format!("User {} {action} issue", sender.login), ctx)
-                    .await?;
+                send_text_to_all(
+                    &subs,
+                    &format!(
+                        "User {} invoked {action} on issue {}",
+                        sender.login, issue.title
+                    ),
+                    ctx,
+                )
+                .await?;
             }
             WebhookEvent::PR(PREvent {
                 action,
                 sender,
                 repository,
+                pull_request: pr,
             }) => {
                 let subs = state
                     .db
                     .get_subscribers(repository.id, Family::PR { pr_action: action })
                     .await
                     .unwrap();
-                send_text_to_all(&subs, &format!("User {} {action} PR", sender.login), ctx).await?;
+                send_text_to_all(
+                    &subs,
+                    &format!("User {} trigged {action} on PR {}", sender.login, pr.title),
+                    ctx,
+                )
+                .await?;
             }
         };
         Ok(())
     }
-
-    async fn _send_msg_to_subscribers(_chats: &[ChatId]) {}
 
     pub async fn stop(self) {
         self.dc_ctx.stop_io().await;

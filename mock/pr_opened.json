@@ -2,8 +2,8 @@
     "action": "opened",
     "number": 2,
     "pull_request": {
-        "url": "https://api.github.com/repos/Septias/testrepo/pulls/2",
-        "id": 1103899475,
+        "url": "https://api.github.com/repos/Septias/testrepo/pulls/3",
+        "id": 1103900553,
         "node_id": "PR_kwDOIU5Tx85BzCtT",
         "html_url": "https://github.com/Septias/testrepo/pull/2",
         "diff_url": "https://github.com/Septias/testrepo/pull/2.diff",
@@ -12,7 +12,7 @@
         "number": 2,
         "state": "open",
         "locked": false,
-        "title": "aha",
+        "title": "PR 2",
         "user": {
             "login": "Septias",
             "id": 39526136,

@@ -60,11 +60,20 @@ pub mod issue {
         Milestoned,
         Demilestoned,
     }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+    pub struct Issue {
+        pub id: usize,
+        pub title: String,
+        pub url: String,
+    }
+
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct IssueEvent {
         pub action: IssueAction,
         pub sender: User,
         pub repository: Repository,
+        pub issue: Issue,
     }
 }
 
@@ -103,10 +112,19 @@ pub mod pr {
         Unlabeled,
         Synchronized,
     }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+    pub struct PR {
+        pub id: usize,
+        pub title: String,
+        pub url: String,
+    }
+
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct PREvent {
         pub action: PRAction,
         pub sender: User,
         pub repository: Repository,
+        pub pull_request: PR,
     }
 }

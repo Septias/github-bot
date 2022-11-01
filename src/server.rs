@@ -74,8 +74,8 @@ async fn receive_webhoook(req: &mut Request<ServerState>) -> Result<WebhookEvent
 #[cfg(test)]
 mod tests {
     use crate::shared::{
-        issue::{IssueAction, IssueEvent},
-        pr::{PRAction, PREvent},
+        issue::{Issue, IssueAction, IssueEvent},
+        pr::{PRAction, PREvent, PR},
         Repository, User,
     };
 
@@ -92,6 +92,11 @@ mod tests {
                 repository: Repository {
                     id: 558781383,
                     name: "testrepo".to_owned(),
+                },
+                issue: Issue {
+                    id: 1427422736,
+                    title: "test".to_owned(),
+                    url: "https://api.github.com/repos/Septias/testrepo/issues/1".to_owned(),
                 }
             }
         );
@@ -109,6 +114,11 @@ mod tests {
                 repository: Repository {
                     id: 558781383,
                     name: "testrepo".to_owned(),
+                },
+                issue: Issue {
+                    id: 1427422736,
+                    title: "test".to_owned(),
+                    url: "https://api.github.com/repos/Septias/testrepo/issues/1".to_owned(),
                 }
             }
         );
@@ -127,6 +137,11 @@ mod tests {
                 repository: Repository {
                     id: 558781383,
                     name: "testrepo".to_owned(),
+                },
+                pull_request: PR {
+                    id: 1103900553,
+                    title: "PR 2".to_owned(),
+                    url: "https://api.github.com/repos/Septias/testrepo/pulls/3".to_owned(),
                 }
             }
         );
@@ -144,6 +159,11 @@ mod tests {
                 repository: Repository {
                     id: 558781383,
                     name: "testrepo".to_owned(),
+                },
+                pull_request: PR {
+                    id: 1103900553,
+                    title: "PR 2".to_owned(),
+                    url: "https://api.github.com/repos/Septias/testrepo/pulls/3".to_owned(),
                 }
             }
         );

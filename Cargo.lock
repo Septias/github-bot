@@ -2121,6 +2121,7 @@ dependencies = [
  "deltachat",
  "env_logger",
  "log",
+ "reqwest",
  "serde",
  "serde_json",
  "strum_macros",

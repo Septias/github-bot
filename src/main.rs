@@ -2,8 +2,9 @@ mod bot;
 mod db;
 mod parser;
 mod server;
-pub mod shared;
+mod shared;
 mod utils;
+mod webhook;
 
 use bot::Bot;
 use tokio::signal;

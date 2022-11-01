@@ -1,4 +1,4 @@
-use clap::{arg, command, Parser, Subcommand};
+use clap::{arg, command, Parser, Subcommand, ValueEnum};
 
 use crate::shared::{issue::IssueAction, pr::PRAction};
 
@@ -24,6 +24,27 @@ pub enum Commands {
         #[command(subcommand)]
         family: Family,
     },
+
+    // Change supported repositories
+    Repository {
+        #[arg(value_enum)]
+        action: RepoAction,
+
+        // Name of repo owner (user or organisation)
+        user: String,
+
+        // Name of repository
+        repository: String,
+
+        // REST-Api key
+        api_key: String,
+    },
+}
+
+#[derive(ValueEnum, Clone, PartialEq, Eq, Debug)]
+pub enum RepoAction {
+    Add,
+    Remove,
 }
 
 #[derive(Subcommand, PartialEq, Eq, Debug)]

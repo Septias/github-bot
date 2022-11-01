@@ -14,10 +14,11 @@ use tokio::sync::mpsc::{self, Receiver};
 
 use crate::{
     db::DB,
-    parser::{Cli, Commands, Family},
+    parser::{Cli, Commands, Family, RepoAction},
     server::Server,
     shared::{issue::IssueEvent, pr::PREvent, WebhookEvent},
     utils::{configure_from_env, send_text_to_all},
+    webhook::{create_hook, remove_hook},
 };
 
 #[derive(Debug, Default)]
@@ -147,13 +148,40 @@ impl Bot {
                 match <Cli as CommandFactory>::command().try_get_matches_from(text.split(' ')) {
                     Ok(mut matches) => {
                         let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
-                        if matches!(res.command, Commands::Subscribe { .. }) {
-                            info!("adding subscriber");
-                            state.db.add_subscriber(res.command, chat_id).await
-                        } else {
-                            info!("removing subscriber");
-                            state.db.remove_subscriber(res.command, chat_id).await
-                        };
+
+                        match &res.command {
+                            Commands::Subscribe { .. } => {
+                                info!("adding subscriber");
+                                state.db.add_subscriber(res.command, chat_id).await
+                            }
+                            Commands::Unsubscribe { .. } => {
+                                info!("removing subscriber");
+                                state.db.remove_subscriber(res.command, chat_id).await
+                            }
+                            Commands::Repository {
+                                action,
+                                user,
+                                repository,
+                                api_key,
+                            } => match action {
+                                RepoAction::Add => {
+                                    if let Err(err) =
+                                        create_hook(&user, &repository, &api_key).await
+                                    {
+                                        error!("{err}");
+                                        send_text_msg(ctx, chat_id, err.to_string()).await?;
+                                    };
+                                }
+                                RepoAction::Remove => {
+                                    if let Err(err) =
+                                        remove_hook(&user, &repository, 12, &api_key).await
+                                    {
+                                        error!("{err}");
+                                        send_text_msg(ctx, chat_id, err.to_string()).await?;
+                                    };
+                                }
+                            },
+                        }
                     }
                     Err(err) => drop(send_text_msg(ctx, chat_id, err.to_string()).await.unwrap()),
                 };

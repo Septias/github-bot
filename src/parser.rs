@@ -9,7 +9,7 @@ pub struct Cli {
     pub command: Commands,
 }
 
-#[derive(Subcommand, PartialEq, Debug)]
+#[derive(Subcommand, PartialEq, Eq, Debug)]
 pub enum Commands {
     /// Subscribe to an event
     Subscribe {
@@ -26,7 +26,7 @@ pub enum Commands {
     },
 }
 
-#[derive(Subcommand, PartialEq, Debug)]
+#[derive(Subcommand, PartialEq, Eq, Debug)]
 pub enum Family {
     // Subscribe to an PR event
     PR {
@@ -46,7 +46,7 @@ mod tests {
 
     #[test]
     fn test_listen_issue_pull() {
-        let cli = Cli::parse_from("wat subscribe 558781383 issue opened".split(" "));
+        let cli = Cli::parse_from("wat subscribe 558781383 issue opened".split(' '));
         assert_eq!(
             cli.command,
             Commands::Subscribe {

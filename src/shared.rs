@@ -3,12 +3,12 @@ use strum_macros::Display;
 
 use self::{issue::IssueEvent, pr::PREvent};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct User {
     pub login: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Repository {
     pub id: usize,
     pub name: String,
@@ -60,7 +60,7 @@ pub mod issue {
         Milestoned,
         Demilestoned,
     }
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct IssueEvent {
         pub action: IssueAction,
         pub sender: User,
@@ -103,12 +103,10 @@ pub mod pr {
         Unlabeled,
         Synchronized,
     }
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct PREvent {
         pub action: PRAction,
         pub sender: User,
         pub repository: Repository,
     }
 }
-
-

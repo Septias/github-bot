@@ -143,7 +143,7 @@ impl Bot {
     ) -> Result<()> {
         let msg = Message::load_from_db(ctx, msg_id).await?;
         if let Some(text) = msg.get_text() {
-            if text.chars().nth(0).unwrap() == '!' {
+            if text.starts_with('!') {
                 match <Cli as CommandFactory>::command()
                     .try_get_matches_from(once("throwaway").chain(text[1..].split(' ')))
                 {
@@ -187,12 +187,8 @@ impl Bot {
                     )
                     .await
                     .unwrap();
-                send_text_to_all(
-                    &subs,
-                    &format!("User {} {action} issue", sender.login),
-                    ctx,
-                )
-                .await?;
+                send_text_to_all(&subs, &format!("User {} {action} issue", sender.login), ctx)
+                    .await?;
             }
             WebhookEvent::PR(PREvent {
                 action,
@@ -204,12 +200,7 @@ impl Bot {
                     .get_subscribers(repository.id, Family::PR { pr_action: action })
                     .await
                     .unwrap();
-                send_text_to_all(
-                    &subs,
-                    &format!("User {} {action} PR", sender.login),
-                    ctx,
-                )
-                .await?;
+                send_text_to_all(&subs, &format!("User {} {action} PR", sender.login), ctx).await?;
             }
         };
         Ok(())

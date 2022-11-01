@@ -25,7 +25,7 @@ impl DB {
     }
 
     async fn execute(&self, ast: &str) -> Result<Vec<surrealdb::Response>, surrealdb::Error> {
-        self.db.execute(&ast, &self.session, None, false).await
+        self.db.execute(ast, &self.session, None, false).await
     }
 
     /// Return which db_table has to be queried for the specific action
@@ -72,15 +72,13 @@ impl DB {
         if let Ok(val) = rsp1.result {
             let obj = unwrap_array(&val);
             if let Value::Object(obj) = obj {
-                let numbers = unwrap_array(obj.values().nth(0).unwrap());
+                let numbers = unwrap_array(obj.values().next().unwrap());
                 if let Value::Array(arr) = numbers {
                     let ids = arr
                         .iter()
                         .map(|num| {
-                            if let Value::Number(num) = num {
-                                if let Number::Int(chat_id) = num {
-                                    return ChatId::new(*chat_id as u32);
-                                }
+                            if let Value::Number(Number::Int(chat_id)) = num {
+                                return ChatId::new(*chat_id as u32);
                             }
                             panic!("can't convert number");
                         })

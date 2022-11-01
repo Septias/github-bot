@@ -9,7 +9,7 @@ use deltachat::{
     EventType, Events,
 };
 use log::{debug, error, info, warn};
-use std::{collections::HashMap, env, iter::once, sync::Arc};
+use std::{collections::HashMap, env, sync::Arc};
 use tokio::sync::mpsc::{self, Receiver};
 
 use crate::{
@@ -143,10 +143,8 @@ impl Bot {
     ) -> Result<()> {
         let msg = Message::load_from_db(ctx, msg_id).await?;
         if let Some(text) = msg.get_text() {
-            if text.starts_with('!') {
-                match <Cli as CommandFactory>::command()
-                    .try_get_matches_from(once("throwaway").chain(text[1..].split(' ')))
-                {
+            if text.starts_with("gh") {
+                match <Cli as CommandFactory>::command().try_get_matches_from(text.split(' ')) {
                     Ok(mut matches) => {
                         let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
                         if matches!(res.command, Commands::Subscribe { .. }) {

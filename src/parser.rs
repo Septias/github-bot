@@ -34,7 +34,7 @@ pub enum Commands {
         user: String,
 
         // Name of repository
-        repository: String,
+        repository: usize,
 
         // REST-Api key
         api_key: String,

@@ -26,7 +26,7 @@ pub enum HookError {
     AlreadyExists,
 }
 
-pub async fn create_hook(user: &str, repo: &str, key: &str) -> anyhow::Result<()> {
+pub async fn create_hook(user: &str, repo: usize, key: &str) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let url = format!("https://api.github.com/repos/{user}/{repo}/hooks");
     let res = client
@@ -48,7 +48,7 @@ pub async fn create_hook(user: &str, repo: &str, key: &str) -> anyhow::Result<()
     }
 }
 
-pub async fn remove_hook(user: &str, repo: &str, hook: usize, key: &str) -> anyhow::Result<()> {
+pub async fn remove_hook(user: &str, repo: usize, hook: usize, key: &str) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let url = format!("https://api.github.com/repos/{user}/{repo}/hooks/{hook}");
     let res = client

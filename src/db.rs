@@ -1,27 +1,31 @@
 use crate::parser::{Commands, Family};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use deltachat::chat::ChatId;
 use surrealdb::{
-    sql::{Number, Value},
+    sql::{Number, Object, Value},
     Datastore, Session,
 };
+
+pub struct Repository {
+    pub name: String,
+    pub hook_id: usize,
+    pub id: usize,
+    pub url: String,
+}
 
 pub struct DB {
     db: Datastore,
     session: Session,
 }
 
+#[allow(unused)]
 impl DB {
-    pub async fn new() -> Self {
-        let db = Datastore::new("file://bot.db").await.unwrap();
+    pub async fn new(store: &str) -> Self {
+        let db = Datastore::new(store).await.unwrap();
         Self {
             db,
             session: Session::for_kv().with_ns("bot").with_db("bot"),
         }
-    }
-    pub async fn init(&self) {
-        let ast = include_str!("statements/initdb.sql");
-        self.execute(ast).await.unwrap();
     }
 
     async fn execute(&self, ast: &str) -> Result<Vec<surrealdb::Response>, surrealdb::Error> {
@@ -89,10 +93,77 @@ impl DB {
         };
         Ok(vec![])
     }
+
+    /// Add a repository to the collection of repositories
+    pub async fn add_repository(&self, repo: Repository) -> Result<()> {
+        let Repository {
+            name,
+            hook_id,
+            id,
+            url,
+        } = repo;
+        let stm = format!("CREATE repo:{id} SET repo_id = {id}, url = '{url}', hoo_id = {hook_id}");
+        self.execute(&stm).await?;
+        Ok(())
+    }
+
+    /// Remove repository from the collection of repositories
+    pub async fn remove_repository(&self, id: usize) -> Result<()> {
+        self.execute(&format!("DELETE repos{id}")).await?;
+        Ok(())
+    }
+
+    /// Get the ids of all available repositories
+    pub async fn get_repository_ids(&self) -> Result<Vec<usize>> {
+        let stm = include_str!("queries/repo_ids.sql");
+        let mut resp = self.execute(stm).await?;
+        let mut resp = resp.remove(0).result?;
+
+        if let Value::Array(arr) = resp {
+            Ok(arr
+                .into_iter()
+                .filter_map(|obj| {
+                    if let Value::Object(obj) = obj {
+                        let Object(inner) = obj;
+                        Some(inner.into_values().next().unwrap().as_int() as usize)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>())
+        } else {
+            bail!("Error while retrieving repo ids")
+        }
+    }
+
+    /// Get the hook-id of one repository
+    pub async fn get_hook_id(&self, id: usize) -> Result<usize> {
+        let mut resp = self
+            .execute(&format!("SELECT hook_id FROM repo:{id}"))
+            .await?;
+        let mut resp = resp.remove(0).result?;
+
+        if let Value::Array(arr) = resp {
+            Ok(arr
+                .into_iter()
+                .filter_map(|obj| {
+                    if let Value::Object(obj) = obj {
+                        let Object(inner) = obj;
+                        Some(inner.into_values().next().unwrap().as_int() as usize)
+                    } else {
+                        None
+                    }
+                })
+                .next()
+                .unwrap())
+        } else {
+            bail!("Error while retrieving repo ids")
+        }
+    }
 }
 
 /// Takes a surreal::Value and tries to unwrap it as long as
-/// It only is an array with one element which is another array
+/// it only is an array with one element which is another array
 fn unwrap_array(val: &Value) -> &Value {
     if let Value::Array(arr) = val {
         if arr.len() == 1 && !matches!(arr[0], Value::Number(_)) {
@@ -100,4 +171,52 @@ fn unwrap_array(val: &Value) -> &Value {
         }
     };
     val
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_repository_ids() {
+        let db = DB::new("memory").await;
+        db.add_repository(Repository {
+            name: "github-bot".to_string(),
+            hook_id: 23,
+            id: 12,
+            url: "".to_string(),
+        })
+        .await
+        .unwrap();
+        assert_eq!(db.get_repository_ids().await.unwrap(), [12]);
+    }
+
+    #[tokio::test]
+    async fn test_remove() {
+        let db = DB::new("memory").await;
+        db.add_repository(Repository {
+            name: "github-bot".to_string(),
+            hook_id: 23,
+            id: 12,
+            url: "".to_string(),
+        })
+        .await
+        .unwrap();
+        db.remove_repository(12).await.unwrap();
+        assert_eq!(db.get_repository_ids().await.unwrap(), [] as [usize; 0]);
+    }
+
+    #[tokio::test]
+    async fn test_get_hook_id() {
+        let db = DB::new("memory").await;
+        db.add_repository(Repository {
+            name: "github-bot".to_string(),
+            hook_id: 23,
+            id: 12,
+            url: "".to_string(),
+        })
+        .await
+        .unwrap();
+        assert_eq!(db.get_hook_id(12).await.unwrap(), 23);
+    }
 }

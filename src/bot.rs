@@ -66,8 +66,7 @@ impl Bot {
             id: "".to_owned(),
         }];
 
-        let db = DB::new().await;
-        db.init().await;
+        let db = DB::new("file://bot.db").await;
 
         Self {
             dc_ctx: ctx,
@@ -166,15 +165,16 @@ impl Bot {
                             } => match action {
                                 RepoAction::Add => {
                                     if let Err(err) =
-                                        create_hook(&user, &repository, &api_key).await
+                                        create_hook(&user, *repository, &api_key).await
                                     {
                                         error!("{err}");
                                         send_text_msg(ctx, chat_id, err.to_string()).await?;
                                     };
                                 }
                                 RepoAction::Remove => {
+                                    let hook_id = state.db.get_hook_id(*repository).await?;
                                     if let Err(err) =
-                                        remove_hook(&user, &repository, 12, &api_key).await
+                                        remove_hook(&user, *repository, hook_id, &api_key).await
                                     {
                                         error!("{err}");
                                         send_text_msg(ctx, chat_id, err.to_string()).await?;

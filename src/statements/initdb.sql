@@ -1,1 +1,0 @@
-CREATE 558781383:558781383 SET issue_opened = [], issue_closed = [], pr_pull = [], pr_push = []; 

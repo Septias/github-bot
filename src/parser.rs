@@ -13,6 +13,7 @@ pub struct Cli {
 pub enum Commands {
     /// Subscribe to an event
     Subscribe {
+        /// Id of the repository
         repo: usize,
         #[command(subcommand)]
         family: Family,
@@ -20,20 +21,39 @@ pub enum Commands {
 
     /// Unsubscribe from an event
     Unsubscribe {
-        repo: String,
+        /// Id of the repository
+        repo: usize,
         #[command(subcommand)]
         family: Family,
     },
 
     // Change supported repositories
-    Repository {
-        #[arg(value_enum)]
-        action: RepoAction,
+    Repositories {
+        #[command(subcommand)]
+        repo_subcommands: RepoSubcommands,
+    },
+}
 
+#[derive(Subcommand, PartialEq, Eq, Debug)]
+pub enum RepoSubcommands {
+    // List all available repositories
+    List,
+
+    // Add a webhook for a new repository
+    Add {
         // Name of repo owner (user or organisation)
-        user: String,
+        owner: String,
 
         // Name of repository
+        repository: String,
+
+        // REST-Api key
+        api_key: String,
+    },
+
+    // Remove a repositories webhook
+    Remove {
+        // Id of repository to remove
         repository: usize,
 
         // REST-Api key

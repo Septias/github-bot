@@ -12,6 +12,7 @@ pub struct User {
 pub struct Repository {
     pub id: usize,
     pub name: String,
+    pub url: String,
 }
 
 #[derive(Debug, Display)]

@@ -92,6 +92,7 @@ mod tests {
                 repository: Repository {
                     id: 558781383,
                     name: "testrepo".to_owned(),
+                    url: "https://api.github.com/repos/Septias/testrepo".to_string(),
                 },
                 issue: Issue {
                     id: 1427422736,
@@ -114,6 +115,7 @@ mod tests {
                 repository: Repository {
                     id: 558781383,
                     name: "testrepo".to_owned(),
+                    url: "https://api.github.com/repos/Septias/testrepo".to_string(),
                 },
                 issue: Issue {
                     id: 1427422736,
@@ -137,6 +139,7 @@ mod tests {
                 repository: Repository {
                     id: 558781383,
                     name: "testrepo".to_owned(),
+                    url: "https://api.github.com/repos/Septias/testrepo".to_string(),
                 },
                 pull_request: PR {
                     id: 1103900553,
@@ -157,6 +160,7 @@ mod tests {
                     login: "Septias".to_owned()
                 },
                 repository: Repository {
+                    url: "https://api.github.com/repos/Septias/testrepo".to_string(),
                     id: 558781383,
                     name: "testrepo".to_owned(),
                 },

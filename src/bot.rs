@@ -8,17 +8,18 @@ use deltachat::{
     stock_str::StockStrings,
     EventType, Events,
 };
+use itertools::Itertools;
 use log::{debug, error, info, warn};
 use std::{collections::HashMap, env, sync::Arc};
 use tokio::sync::mpsc::{self, Receiver};
 
 use crate::{
-    db::DB,
-    parser::{Cli, Commands, Family, RepoAction},
+    db::{Repository, DB},
+    parser::{Cli, Commands, Family},
+    rest_api::{create_hook, get_repository, remove_hook},
     server::Server,
-    shared::{issue::IssueEvent, pr::PREvent, WebhookEvent},
+    shared::{issue::IssueEvent, pr::PREvent, Repository as SharedRepo, WebhookEvent},
     utils::{configure_from_env, send_text_to_all},
-    webhook::{create_hook, remove_hook},
 };
 
 #[derive(Debug, Default)]
@@ -82,6 +83,10 @@ impl Bot {
         }
     }
 
+    /// Start the bot which includes:
+    /// - starting dc-message-receive loop
+    /// - starting webhook-receive loop
+    ///   - starting receiving server
     pub async fn start(&mut self) {
         // start dc message handler
         let events_emitter = self.dc_ctx.get_event_emitter();
@@ -110,6 +115,7 @@ impl Bot {
         });
     }
 
+    /// Handle _all_ dc-events
     async fn dc_event_handler(ctx: &Context, state: Arc<State>, event: EventType) {
         match event {
             EventType::ConfigureProgress { progress, comment } => {
@@ -135,6 +141,7 @@ impl Bot {
         }
     }
 
+    /// Handles chat messages from clients
     async fn handle_dc_message(
         ctx: &Context,
         state: Arc<State>,
@@ -143,6 +150,7 @@ impl Bot {
     ) -> Result<()> {
         let msg = Message::load_from_db(ctx, msg_id).await?;
         if let Some(text) = msg.get_text() {
+            // only react to messages with right keywoard
             if text.starts_with("gh") {
                 match <Cli as CommandFactory>::command().try_get_matches_from(text.split(' ')) {
                     Ok(mut matches) => {
@@ -151,34 +159,83 @@ impl Bot {
                         match &res.command {
                             Commands::Subscribe { .. } => {
                                 info!("adding subscriber");
-                                state.db.add_subscriber(res.command, chat_id).await
+                                state.db.add_subscriber(res.command, chat_id).await;
+                                send_text_msg(ctx, chat_id, "added event subscriber".to_string())
+                                    .await?;
                             }
                             Commands::Unsubscribe { .. } => {
                                 info!("removing subscriber");
-                                state.db.remove_subscriber(res.command, chat_id).await
+                                state.db.remove_subscriber(res.command, chat_id).await;
+                                send_text_msg(ctx, chat_id, "removed event subscriber".to_string())
+                                    .await?;
                             }
-                            Commands::Repository {
-                                action,
-                                user,
-                                repository,
-                                api_key,
-                            } => match action {
-                                RepoAction::Add => {
-                                    if let Err(err) =
-                                        create_hook(&user, *repository, &api_key).await
-                                    {
-                                        error!("{err}");
-                                        send_text_msg(ctx, chat_id, err.to_string()).await?;
+                            Commands::Repositories { repo_subcommands } => match repo_subcommands {
+                                crate::parser::RepoSubcommands::List => {
+                                    let repos = state.db.get_repository_ids().await?;
+                                    let text = if repos.len() > 0 {
+                                        format!(
+                                            "Available repositories:\n{}",
+                                            repos.iter().join("\n-")
+                                        )
+                                    } else {
+                                        format!("No repositories have been added to the bot")
                                     };
+                                    error!("{text}");
+                                    send_text_msg(ctx, chat_id, text).await?;
                                 }
-                                RepoAction::Remove => {
-                                    let hook_id = state.db.get_hook_id(*repository).await?;
-                                    if let Err(err) =
-                                        remove_hook(&user, *repository, hook_id, &api_key).await
-                                    {
+                                crate::parser::RepoSubcommands::Add {
+                                    owner,
+                                    repository,
+                                    api_key,
+                                } => match create_hook(&owner, repository, &api_key).await {
+                                    Ok(hook_id) => {
+                                        let SharedRepo { id, url, .. } =
+                                            get_repository(owner, &repository, &api_key).await?;
+                                        state
+                                            .db
+                                            .add_repository(Repository {
+                                                name: repository,
+                                                owner,
+                                                hook_id,
+                                                id,
+                                                url: &url,
+                                            })
+                                            .await?;
+                                        info!("added new webhook for repo {repository}");
+                                        send_text_msg(
+                                            ctx,
+                                            chat_id,
+                                            "Successfully added webhook".to_string(),
+                                        )
+                                        .await?;
+                                    }
+                                    Err(err) => {
                                         error!("{err}");
                                         send_text_msg(ctx, chat_id, err.to_string()).await?;
-                                    };
+                                    }
+                                },
+                                crate::parser::RepoSubcommands::Remove {
+                                    repository,
+                                    api_key,
+                                } => {
+                                    let hook_id = state.db.get_hook_id(*repository).await?;
+                                    let owner = state.db.get_owner(*repository).await.unwrap();
+                                    match remove_hook(&owner, *repository, hook_id, &api_key).await
+                                    {
+                                        Ok(_) => {
+                                            info!("removed webhook for repo {repository}");
+                                            send_text_msg(
+                                                ctx,
+                                                chat_id,
+                                                "Successfully removed repository".to_string(),
+                                            )
+                                            .await?;
+                                        }
+                                        Err(err) => {
+                                            error!("{err}");
+                                            send_text_msg(ctx, chat_id, err.to_string()).await?;
+                                        }
+                                    }
                                 }
                             },
                         }
@@ -191,6 +248,8 @@ impl Bot {
         Ok(())
     }
 
+
+    /// Handle a parsed webhook-event
     async fn handle_webhook(
         state: Arc<State>,
         ctx: &Context,
@@ -217,7 +276,7 @@ impl Bot {
                 send_text_to_all(
                     &subs,
                     &format!(
-                        "User {} invoked {action} on issue {}",
+                        "User {} triggered event `{action}` on issue {}",
                         sender.login, issue.title
                     ),
                     ctx,
@@ -237,7 +296,7 @@ impl Bot {
                     .unwrap();
                 send_text_to_all(
                     &subs,
-                    &format!("User {} trigged {action} on PR {}", sender.login, pr.title),
+                    &format!("User {} trigged event `{action}` on PR {}", sender.login, pr.title),
                     ctx,
                 )
                 .await?;

@@ -6,11 +6,13 @@ use surrealdb::{
     Datastore, Session,
 };
 
-pub struct Repository {
-    pub name: String,
+#[derive(Default)]
+pub struct Repository<'a> {
+    pub name: &'a str,
+    pub owner: &'a str,
     pub hook_id: usize,
     pub id: usize,
-    pub url: String,
+    pub url: &'a str,
 }
 
 pub struct DB {
@@ -95,21 +97,22 @@ impl DB {
     }
 
     /// Add a repository to the collection of repositories
-    pub async fn add_repository(&self, repo: Repository) -> Result<()> {
+    pub async fn add_repository<'a>(&self, repo: Repository<'a>) -> Result<()> {
         let Repository {
             name,
             hook_id,
             id,
             url,
+            owner,
         } = repo;
-        let stm = format!("CREATE repo:{id} SET repo_id = {id}, url = '{url}', hoo_id = {hook_id}");
+        let stm = format!("CREATE repo:{id} SET repo_id = {id}, url = '{url}', hook_id = {hook_id}, owner='{owner}' ");
         self.execute(&stm).await?;
         Ok(())
     }
 
     /// Remove repository from the collection of repositories
     pub async fn remove_repository(&self, id: usize) -> Result<()> {
-        self.execute(&format!("DELETE repos{id}")).await?;
+        self.execute(&format!("DELETE repos:{id}")).await?;
         Ok(())
     }
 
@@ -143,22 +146,29 @@ impl DB {
             .await?;
         let mut resp = resp.remove(0).result?;
 
-        if let Value::Array(arr) = resp {
-            Ok(arr
-                .into_iter()
-                .filter_map(|obj| {
-                    if let Value::Object(obj) = obj {
-                        let Object(inner) = obj;
-                        Some(inner.into_values().next().unwrap().as_int() as usize)
-                    } else {
-                        None
-                    }
-                })
-                .next()
-                .unwrap())
-        } else {
-            bail!("Error while retrieving repo ids")
-        }
+        if let Value::Array(mut arr) = resp {
+            if let Value::Object(obj) = arr.remove(0) {
+                let Object(inner) = obj;
+                return Ok(inner.into_values().next().unwrap().as_int() as usize);
+            }
+        };
+        bail!("something went wrong")
+    }
+
+    /// Get the owner of one repository
+    pub async fn get_owner(&self, id: usize) -> Result<String> {
+        let mut resp = self
+            .execute(&format!("SELECT owner FROM repo:{id}"))
+            .await?;
+        let mut resp = resp.remove(0).result?;
+
+        if let Value::Array(mut arr) = resp {
+            if let Value::Object(obj) = arr.remove(0) {
+                let Object(inner) = obj;
+                return Ok(inner.into_values().next().unwrap().as_string());
+            }
+        };
+        bail!("something went wrong")
     }
 }
 
@@ -181,10 +191,8 @@ mod tests {
     async fn test_get_repository_ids() {
         let db = DB::new("memory").await;
         db.add_repository(Repository {
-            name: "github-bot".to_string(),
-            hook_id: 23,
             id: 12,
-            url: "".to_string(),
+            ..Default::default()
         })
         .await
         .unwrap();
@@ -195,10 +203,8 @@ mod tests {
     async fn test_remove() {
         let db = DB::new("memory").await;
         db.add_repository(Repository {
-            name: "github-bot".to_string(),
-            hook_id: 23,
             id: 12,
-            url: "".to_string(),
+            ..Default::default()
         })
         .await
         .unwrap();
@@ -210,13 +216,26 @@ mod tests {
     async fn test_get_hook_id() {
         let db = DB::new("memory").await;
         db.add_repository(Repository {
-            name: "github-bot".to_string(),
             hook_id: 23,
             id: 12,
-            url: "".to_string(),
+            url: "",
+            ..Default::default()
         })
         .await
         .unwrap();
         assert_eq!(db.get_hook_id(12).await.unwrap(), 23);
+    }
+
+    #[tokio::test]
+    async fn test_get_owner() {
+        let db = DB::new("memory").await;
+        db.add_repository(Repository {
+            owner: "Me",
+            id: 12,
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+        assert_eq!(db.get_owner(12).await.unwrap(), "Me".to_string());
     }
 }

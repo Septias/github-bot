@@ -1,2 +1,2 @@
 curl -X POST --data "@mock/issue_open.json" localhost:8080/receive --header "X-GitHub-Event: issues"
-addr=$tmp.2wtye@testrun.org mail_pw=$s/J1MAVsRtsV cargo r   
+RUST_LOG=info addr=tmp.ynxt3@testrun.org mail_pw=plDFgV3SlGog cargo r   

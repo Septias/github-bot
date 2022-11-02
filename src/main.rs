@@ -4,7 +4,7 @@ mod parser;
 mod server;
 mod shared;
 mod utils;
-mod webhook;
+mod rest_api;
 
 use bot::Bot;
 use tokio::signal;

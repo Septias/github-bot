@@ -172,13 +172,13 @@ impl Bot {
                             Commands::Repositories { repo_subcommands } => match repo_subcommands {
                                 crate::parser::RepoSubcommands::List => {
                                     let repos = state.db.get_repository_ids().await?;
-                                    let text = if repos.len() > 0 {
+                                    let text = if !repos.is_empty() {
                                         format!(
                                             "Available repositories:\n{}",
                                             repos.iter().join("\n-")
                                         )
                                     } else {
-                                        format!("No repositories have been added to the yet")
+                                        "No repositories have been added to the yet".to_string()
                                     };
                                     error!("{text}");
                                     send_text_msg(ctx, chat_id, text).await?;
@@ -187,10 +187,10 @@ impl Bot {
                                     owner,
                                     repository,
                                     api_key,
-                                } => match create_hook(&owner, repository, &api_key).await {
+                                } => match create_hook(owner, repository, api_key).await {
                                     Ok(hook_id) => {
                                         let SharedRepo { id, url, .. } =
-                                            get_repository(owner, &repository, &api_key).await?;
+                                            get_repository(owner, repository, api_key).await?;
                                         state
                                             .db
                                             .add_repository(Repository {
@@ -221,7 +221,7 @@ impl Bot {
                                     let hook_id = state.db.get_hook_id(*repository).await?;
                                     let owner = state.db.get_owner(*repository).await.unwrap();
                                     let repo = state.db.get_name(*repository).await.unwrap();
-                                    match remove_hook(&owner, &repo, hook_id, &api_key).await {
+                                    match remove_hook(&owner, &repo, hook_id, api_key).await {
                                         Ok(_) => {
                                             info!("removed webhook for repo {repository}");
                                             send_text_msg(
@@ -240,7 +240,9 @@ impl Bot {
                             },
                         }
                     }
-                    Err(err) => drop(send_text_msg(ctx, chat_id, err.to_string()).await.unwrap()),
+                    Err(err) => {
+                        send_text_msg(ctx, chat_id, err.to_string()).await.unwrap();
+                    }
                 };
             }
         }

@@ -1,4 +1,4 @@
-use clap::{arg, command, Parser, Subcommand, ValueEnum};
+use clap::{arg, command, Parser, Subcommand};
 
 use crate::shared::{issue::IssueAction, pr::PRAction};
 

@@ -10,7 +10,7 @@ use crate::shared::{issue::IssueEvent, pr::PREvent, WebhookEvent};
 #[derive(Error, Debug)]
 enum Error {
     #[error("Unable to parse Request")]
-    ParseError(#[from] serde_json::Error),
+    Parse(#[from] serde_json::Error),
 
     #[error("Not Covered")]
     NotCovered,

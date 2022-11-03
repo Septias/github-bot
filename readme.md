@@ -101,7 +101,7 @@ gh repositories list
 - After receiving a webhook event, the bot distrutes it to all listeners.
 - The client requests are parsed using `clap`.
 
-#### Files
+### Files
 
 ```
 .

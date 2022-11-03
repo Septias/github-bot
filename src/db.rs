@@ -37,7 +37,7 @@ impl DB {
     /// Return which db_table has to be queried for the specific action
     fn get_list_prefix(family: Family) -> String {
         match family {
-            crate::parser::Family::PR { pr_action } => format!("pr_{}", pr_action),
+            crate::parser::Family::Pr { pr_action } => format!("pr_{}", pr_action),
             crate::parser::Family::Issue { issue_action } => {
                 format!("issue_{}", issue_action)
             }
@@ -105,7 +105,7 @@ impl DB {
             url,
             owner,
         } = repo;
-        let stm = format!("CREATE repo:{id} SET repo_id = {id}, url = '{url}', hook_id = {hook_id}, owner='{owner}' ");
+        let stm = format!("CREATE repo:{id} SET repo_id = {id}, url = '{url}', hook_id = {hook_id}, owner='{owner}', name = '{name}'");
         self.execute(&stm).await?;
         Ok(())
     }
@@ -160,6 +160,20 @@ impl DB {
         let mut resp = self
             .execute(&format!("SELECT owner FROM repo:{id}"))
             .await?;
+        let mut resp = resp.remove(0).result?;
+
+        if let Value::Array(mut arr) = resp {
+            if let Value::Object(obj) = arr.remove(0) {
+                let Object(inner) = obj;
+                return Ok(inner.into_values().next().unwrap().as_string());
+            }
+        };
+        bail!("something went wrong")
+    }
+
+    /// Get the name of one repository
+    pub async fn get_name(&self, id: usize) -> Result<String> {
+        let mut resp = self.execute(&format!("SELECT name FROM repo:{id}")).await?;
         let mut resp = resp.remove(0).result?;
 
         if let Value::Array(mut arr) = resp {
@@ -237,5 +251,18 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(db.get_owner(12).await.unwrap(), "Me".to_string());
+    }
+
+    #[tokio::test]
+    async fn test_get_name() {
+        let db = DB::new("memory").await;
+        db.add_repository(Repository {
+            name: "ligma",
+            id: 12,
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+        assert_eq!(db.get_name(12).await.unwrap(), "ligma".to_string());
     }
 }

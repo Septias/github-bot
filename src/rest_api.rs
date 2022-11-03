@@ -57,7 +57,7 @@ pub async fn create_hook(owner: &str, repo: &str, key: &str) -> anyhow::Result<u
     }
 }
 
-pub async fn remove_hook(owner: &str, repo: usize, hook: usize, key: &str) -> anyhow::Result<()> {
+pub async fn remove_hook(owner: &str, repo: &str, hook: usize, key: &str) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let url = format!("https://api.github.com/repos/{owner}/{repo}/hooks/{hook}");
     let res = client

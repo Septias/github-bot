@@ -160,13 +160,13 @@ impl Bot {
                             Commands::Subscribe { .. } => {
                                 info!("adding subscriber");
                                 state.db.add_subscriber(res.command, chat_id).await;
-                                send_text_msg(ctx, chat_id, "added event subscriber".to_string())
+                                send_text_msg(ctx, chat_id, "Added event listener".to_string())
                                     .await?;
                             }
                             Commands::Unsubscribe { .. } => {
                                 info!("removing subscriber");
                                 state.db.remove_subscriber(res.command, chat_id).await;
-                                send_text_msg(ctx, chat_id, "removed event subscriber".to_string())
+                                send_text_msg(ctx, chat_id, "Removed event listener".to_string())
                                     .await?;
                             }
                             Commands::Repositories { repo_subcommands } => match repo_subcommands {
@@ -178,7 +178,7 @@ impl Bot {
                                             repos.iter().join("\n-")
                                         )
                                     } else {
-                                        format!("No repositories have been added to the bot")
+                                        format!("No repositories have been added to the yet")
                                     };
                                     error!("{text}");
                                     send_text_msg(ctx, chat_id, text).await?;
@@ -201,7 +201,7 @@ impl Bot {
                                                 url: &url,
                                             })
                                             .await?;
-                                        info!("added new webhook for repo {repository}");
+                                        info!("Added new webhook for repository {repository}");
                                         send_text_msg(
                                             ctx,
                                             chat_id,
@@ -220,8 +220,8 @@ impl Bot {
                                 } => {
                                     let hook_id = state.db.get_hook_id(*repository).await?;
                                     let owner = state.db.get_owner(*repository).await.unwrap();
-                                    match remove_hook(&owner, *repository, hook_id, &api_key).await
-                                    {
+                                    let repo = state.db.get_name(*repository).await.unwrap();
+                                    match remove_hook(&owner, &repo, hook_id, &api_key).await {
                                         Ok(_) => {
                                             info!("removed webhook for repo {repository}");
                                             send_text_msg(
@@ -247,7 +247,6 @@ impl Bot {
 
         Ok(())
     }
-
 
     /// Handle a parsed webhook-event
     async fn handle_webhook(
@@ -291,12 +290,15 @@ impl Bot {
             }) => {
                 let subs = state
                     .db
-                    .get_subscribers(repository.id, Family::PR { pr_action: action })
+                    .get_subscribers(repository.id, Family::Pr { pr_action: action })
                     .await
                     .unwrap();
                 send_text_to_all(
                     &subs,
-                    &format!("User {} trigged event `{action}` on PR {}", sender.login, pr.title),
+                    &format!(
+                        "User {} trigged event `{action}` on PR {}",
+                        sender.login, pr.title
+                    ),
                     ctx,
                 )
                 .await?;

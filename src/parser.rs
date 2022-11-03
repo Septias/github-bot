@@ -61,20 +61,12 @@ pub enum RepoSubcommands {
     },
 }
 
-#[derive(ValueEnum, Clone, PartialEq, Eq, Debug)]
-pub enum RepoAction {
-    Add,
-    Remove,
-}
-
 #[derive(Subcommand, PartialEq, Eq, Debug)]
 pub enum Family {
-    // Subscribe to an PR event
-    PR {
+    Pr {
         #[arg(value_enum)]
         pr_action: PRAction,
     },
-    // Subscribe to an issue event
     Issue {
         #[arg(value_enum)]
         issue_action: IssueAction,

@@ -2,7 +2,10 @@
 
 A Deltachat-bot which works as bridge between Deltachat and Github Webhoooks
 
+### Usage
+
 #### Client requests
+
 Users can interact with the bot by issuin `commands`.
 All `commands` have to be prefixed with `gh` and can be of the following form:
 
@@ -70,23 +73,29 @@ enum Cli {
 #### Examples
 
 Add a repository:
+
 ```
 gh repositories add septias github-bot ghp_xyp
 ```
+
 where `ghp_xyp` is a github rest-api key that can be created like [this](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
 
 Add an event listener:
+
 ```
 gh subscribe 123534 issue opened
 ```
+
 where 123534 is a valid repo taken from:
 
 List all repositories:a
+
 ```
 gh repositories list
 ```
 
 ### Architecture
+
 - The bot has to be hosted under a public ip to be able to receive rust webhooks.
 - The file `server.rs` spins up a `tide` webserver listening on port `0.0.0.0:8080/receive`.
 - The webhook sends all events to this endpoint where they are parsed and passed to the bot via an channel.
@@ -94,6 +103,7 @@ gh repositories list
 - The client requests are parsed using `clap`.
 
 #### Files
+
 .
 ├── mock <- mock-files for testing
 ├── src
@@ -108,5 +118,6 @@ gh repositories list
 │ └── utils.rs
 
 ### Further improvement
+
 - Don't allow users to register listeners twice
   - this gets rejected internally, but is not shown to user

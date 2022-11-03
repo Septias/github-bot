@@ -122,7 +122,7 @@ Start the bot like this:
 ```
 RUST_LOG=info addr=<add> mail_pw=<pw> cargo r
 ```
-where `<addr>` and `<pw>` are some valid login credentials for a email-server.
+where `<addr>` and `<pw>` are some valid login credentials for an email-server.
 
 #### Testing
 It comes in handy to send webhook-events manually with curl:

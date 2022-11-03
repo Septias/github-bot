@@ -1,9 +1,8 @@
-### Usage
+## DC-Github-Bot
 
-Deltachat-bot which works as bridge between Deltachat and Github Webhoooks
+A Deltachat-bot which works as bridge between Deltachat and Github Webhoooks
 
 #### Client requests
-
 Users can interact with the bot by issuin `commands`.
 All `commands` have to be prefixed with `gh` and can be of the following form:
 

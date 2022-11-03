@@ -117,6 +117,20 @@ gh repositories list
 │ └── utils.rs
 ```
 
+### Development
+Start the bot like this: 
+```
+RUST_LOG=info addr=<add> mail_pw=<pw> cargo r
+```
+where `<addr>` and `<pw>` are some valid login credentials for a email-server.
+
+#### Testing
+It comes in handy to send webhook-events manually with curl:
+```bash
+curl -X POST --data "@mock/issue_open.json" localhost:8080/receive --header "X-GitHub-Event: issues"
+```
+
+
 ### Further improvement
 
 - Don't allow users to register listeners twice

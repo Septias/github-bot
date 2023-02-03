@@ -94,10 +94,16 @@ impl Bot {
                 Self::dc_event_handler(&ctx, state.clone(), event.typ).await;
             }
         });
+        info!("initiated dc message handler (1/4)");
+
         self.dc_ctx.start_io().await;
+
+        info!("initiated dc io (2/4)");
 
         // start webhook-server
         self.hook_server.start();
+
+        info!("initiated webhook server (3/4)");
 
         // start webhook-handler
         let mut thing_receiver = self.hook_receiver.take().unwrap();
@@ -110,6 +116,9 @@ impl Bot {
                 }
             }
         });
+        info!("initiated webhook handler (4/4");
+        info!("successfully started bot! 🥳");
+
     }
 
     /// Handle _all_ dc-events

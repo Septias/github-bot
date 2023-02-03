@@ -1,5 +1,5 @@
 //! Integration fo SurrealDB
- 
+
 use crate::parser::{Commands, Family};
 use anyhow::{bail, Result};
 use deltachat::chat::ChatId;
@@ -47,7 +47,9 @@ impl DB {
     }
 
     async fn change_subscriber(&self, command: Commands, chat: ChatId, add: bool) {
-        if let Commands::Subscribe { repo, family } = command {
+        if let Commands::Subscribe { repo, family } | Commands::Unsubscribe { repo, family } =
+            command
+        {
             let list = Self::get_list_prefix(family);
             let action = if add { "+=" } else { "-=" };
             self.execute(&format!(

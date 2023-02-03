@@ -40,6 +40,8 @@ async fn handler(mut req: Request<ServerState>) -> tide::Result {
     Ok("".into())
 }
 
+const ADDR: &str = "0.0.0.0:8080";
+
 impl Server {
     pub fn new(channel: Sender<WebhookEvent>) -> Self {
         let mut server = tide::with_state(ServerState {
@@ -51,9 +53,11 @@ impl Server {
 
     pub fn start(&self) -> tokio::task::JoinHandle<()> {
         let server = self.server.clone();
-        tokio::spawn(async move {
-            server.listen("0.0.0.0:8080").await.unwrap();
-        })
+        let handle = tokio::spawn(async move {
+            server.listen(ADDR).await.unwrap();
+        });
+        info!("listening on {ADDR}");
+        handle
     }
 
     pub fn stop(self) {}

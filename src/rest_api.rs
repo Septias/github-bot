@@ -1,3 +1,5 @@
+//! Integration for Githubs Rest API
+
 use anyhow::bail;
 use serde::Deserialize;
 use thiserror::Error;

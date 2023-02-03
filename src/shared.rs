@@ -1,3 +1,5 @@
+//! Some shared types
+
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 

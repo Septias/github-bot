@@ -1,10 +1,10 @@
-mod bot;
-mod db;
-mod parser;
-mod rest_api;
-mod server;
-mod shared;
-mod utils;
+pub mod bot;
+pub mod db;
+pub mod parser;
+pub mod rest_api;
+pub mod server;
+pub mod shared;
+pub mod utils;
 
 use bot::Bot;
 use tokio::signal;

@@ -1,3 +1,5 @@
+//! Utility functions
+
 use anyhow::{Context as _, Result};
 use deltachat::{
     chat::{send_text_msg, ChatId},

@@ -1,3 +1,5 @@
+//! Integration fo SurrealDB
+ 
 use crate::parser::{Commands, Family};
 use anyhow::{bail, Result};
 use deltachat::chat::ChatId;

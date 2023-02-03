@@ -1,3 +1,5 @@
+//! Parser for commands sent to the bot
+
 use clap::{arg, command, Parser, Subcommand};
 
 use crate::shared::{issue::IssueAction, pr::PRAction};

@@ -1,3 +1,4 @@
+//! Local server to receive Githubs webhooks
 use anyhow::anyhow;
 use log::{error, info};
 use std::sync::Arc;

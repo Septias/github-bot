@@ -1,3 +1,5 @@
+//! Entry for the bot code
+
 use anyhow::{Context as _, Result};
 use clap::{CommandFactory, FromArgMatches};
 use deltachat::{
@@ -22,6 +24,7 @@ use crate::{
     utils::{configure_from_env, send_text_to_all},
 };
 
+/// Internal representation of a git repository that can be subscribed to
 #[derive(Debug, Default)]
 pub struct GitRepository {
     pub name: String,
@@ -30,11 +33,13 @@ pub struct GitRepository {
 
 type RepositoryId = String;
 
+/// Github Bot state
 pub struct State {
     pub repos: HashMap<RepositoryId, GitRepository>,
     pub db: DB,
 }
 
+/// Github Bot
 pub struct Bot {
     dc_ctx: Context,
     hook_receiver: Option<Receiver<WebhookEvent>>,
@@ -44,7 +49,7 @@ pub struct Bot {
 
 impl Bot {
     pub async fn new() -> Self {
-        let dbdir = env::current_dir().unwrap().join("deltachat-db");
+        let dbdir = env::current_dir().unwrap().join("deltachat.db");
         std::fs::create_dir_all(dbdir.clone())
             .context("failed to create db folder")
             .unwrap();
@@ -62,21 +67,13 @@ impl Bot {
 
         let (tx, rx) = mpsc::channel(100);
 
-        let repositories = [GitRepository {
-            name: "test".to_owned(),
-            id: "".to_owned(),
-        }];
-
         let db = DB::new("file://bot.db").await;
 
         Self {
             dc_ctx: ctx,
             hook_receiver: Some(rx),
             state: Arc::new(State {
-                repos: repositories
-                    .into_iter()
-                    .map(|rep| (rep.id.clone(), rep))
-                    .collect(),
+                repos: HashMap::new(),
                 db,
             }),
             hook_server: Server::new(tx),

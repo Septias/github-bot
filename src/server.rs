@@ -56,7 +56,6 @@ impl Server {
         let handle = tokio::spawn(async move {
             server.listen(ADDR).await.unwrap();
         });
-        info!("listening on {ADDR}");
         handle
     }
 

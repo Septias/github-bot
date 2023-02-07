@@ -50,6 +50,7 @@ pub enum RepoSubcommands {
         repository: String,
 
         // REST-Api key
+        // help: https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account
         api_key: String,
     },
 
@@ -59,6 +60,7 @@ pub enum RepoSubcommands {
         repository: usize,
 
         // REST-Api key
+        // help: https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account
         api_key: String,
     },
 }

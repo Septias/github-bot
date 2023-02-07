@@ -31,12 +31,13 @@ pub struct GitRepository {
     pub id: RepositoryId,
 }
 
-type RepositoryId = String;
+type RepositoryId = i64;
 
 /// Github Bot state
 pub struct State {
     pub repos: HashMap<RepositoryId, GitRepository>,
     pub db: DB,
+    pub ip: String,
 }
 
 /// Github Bot
@@ -73,8 +74,18 @@ impl Bot {
             dc_ctx: ctx,
             hook_receiver: Some(rx),
             state: Arc::new(State {
-                repos: HashMap::new(),
+                repos: db
+                    .get_repositories()
+                    .await
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|repo| (repo.id, repo))
+                    .collect(),
                 db,
+                ip: pnet::datalink::interfaces()
+                    .get(0)
+                    .expect("should have an ip")
+                    .to_string(),
             }),
             hook_server: Server::new(tx),
         }
@@ -118,7 +129,6 @@ impl Bot {
         });
         info!("initiated webhook handler (4/4");
         info!("successfully started bot! 🥳");
-
     }
 
     /// Handle _all_ dc-events
@@ -193,7 +203,8 @@ impl Bot {
                                     owner,
                                     repository,
                                     api_key,
-                                } => match create_hook(owner, repository, api_key).await {
+                                } => match create_hook(owner, repository, api_key, &state.ip).await
+                                {
                                     Ok(hook_id) => {
                                         let SharedRepo { id, url, .. } =
                                             get_repository(owner, repository, api_key).await?;

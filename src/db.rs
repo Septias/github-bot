@@ -1,6 +1,9 @@
 //! Integration fo SurrealDB
 
-use crate::parser::{Commands, Family};
+use crate::{
+    bot::GitRepository,
+    parser::{Commands, Family},
+};
 use anyhow::{bail, Result};
 use deltachat::chat::ChatId;
 use surrealdb::{
@@ -118,6 +121,32 @@ impl DB {
     pub async fn remove_repository(&self, id: usize) -> Result<()> {
         self.execute(&format!("DELETE repos:{id}")).await?;
         Ok(())
+    }
+
+    /// Get all repositories
+    pub async fn get_repositories(&self) -> Result<Vec<GitRepository>> {
+        let stm = format!("SELECT repo_id, name FROM repo;");
+        let mut resp = self.execute(&stm).await?;
+        let mut resp = resp.remove(0).result?;
+
+        if let Value::Array(arr) = resp {
+            Ok(arr
+                .into_iter()
+                .filter_map(|obj| {
+                    if let Value::Object(obj) = obj {
+                        let Object(inner) = obj;
+                        Some(GitRepository {
+                            name: inner.get("name")?.clone().as_string(),
+                            id: inner.get("repo_id")?.clone().as_int(),
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>())
+        } else {
+            bail!("Error while retrieving repo ids")
+        }
     }
 
     /// Get the ids of all available repositories

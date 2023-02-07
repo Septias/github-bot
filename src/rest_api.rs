@@ -6,22 +6,6 @@ use thiserror::Error;
 
 use crate::shared::Repository;
 
-const BODY: &str = r#"
-{
-    "name": "web",
-    "active": true,
-    "events": [
-        "issues",
-        "pull_request"
-    ],
-    "config": {
-        "url": "http://188.68.57.24:8080/receive",
-        "content_type": "json",
-        "insecure_ssl": "0"
-    }
-}
-"#;
-
 #[derive(Error, Debug)]
 pub enum HookError {
     #[error("Unknown error")]
@@ -36,7 +20,12 @@ struct CreatedResponse {
     pub id: usize,
 }
 
-pub async fn create_hook(owner: &str, repo: &str, key: &str) -> anyhow::Result<usize> {
+pub async fn create_hook(
+    owner: &str,
+    repo: &str,
+    key: &str,
+    ip: &str,
+) -> anyhow::Result<usize> {
     let client = reqwest::Client::new();
     let url = format!("https://api.github.com/repos/{owner}/{repo}/hooks");
     let res = client
@@ -44,7 +33,19 @@ pub async fn create_hook(owner: &str, repo: &str, key: &str) -> anyhow::Result<u
         .header("Accept", "application/vnd.github+json")
         .header("Authorization", format!("Bearer {key}"))
         .header("User-Agent", "deltachat-github-bot")
-        .body(BODY)
+        .body(format!(
+            r#"
+        {{
+            "name": "deltachat-github-bot",
+            "active": true,
+            "config": {{
+                "url": "{ip}",
+                "content_type": "json",
+                "insecure_ssl": "0"
+            }}
+        }}
+        "#,
+        ))
         .send()
         .await?;
 

@@ -35,7 +35,6 @@ type RepositoryId = i64;
 
 /// Github Bot state
 pub struct State {
-    pub repos: HashMap<RepositoryId, GitRepository>,
     pub db: DB,
     pub ip: String,
 }
@@ -74,17 +73,15 @@ impl Bot {
             dc_ctx: ctx,
             hook_receiver: Some(rx),
             state: Arc::new(State {
-                repos: db
-                    .get_repositories()
-                    .await
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|repo| (repo.id, repo))
-                    .collect(),
                 db,
                 ip: pnet::datalink::interfaces()
-                    .get(0)
+                    .iter()
+                    .find(|e| e.is_up() && !e.is_loopback() && !e.ips.is_empty())
                     .expect("should have an ip")
+                    .ips
+                    .get(0)
+                    .unwrap()
+                    .ip()
                     .to_string(),
             }),
             hook_server: Server::new(tx),
@@ -127,7 +124,7 @@ impl Bot {
                 }
             }
         });
-        info!("initiated webhook handler (4/4");
+        info!("initiated webhook handler (4/4)");
         info!("successfully started bot! 🥳");
     }
 
@@ -191,10 +188,10 @@ impl Bot {
                                     let text = if !repos.is_empty() {
                                         format!(
                                             "Available repositories:\n{}",
-                                            repos.iter().join("\n-")
+                                            repos.iter().join("\n")
                                         )
                                     } else {
-                                        "No repositories have been added to the yet".to_string()
+                                        "No repositories have been added yet".to_string()
                                     };
                                     error!("{text}");
                                     send_text_msg(ctx, chat_id, text).await?;

@@ -1,6 +1,7 @@
 //! Integration for Githubs Rest API
 
 use anyhow::bail;
+use log::{error, info};
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -8,11 +9,11 @@ use crate::shared::Repository;
 
 #[derive(Error, Debug)]
 pub enum HookError {
-    #[error("Unknown error")]
-    Unknown,
+    #[error("Server error: {0}")]
+    Server(String),
 
-    #[error("The hook already exists")]
-    AlreadyExists,
+    #[error("Validation failed, or the endpoint has been spammed.")]
+    ValidationError,
 }
 
 #[derive(Deserialize)]
@@ -20,14 +21,11 @@ struct CreatedResponse {
     pub id: usize,
 }
 
-pub async fn create_hook(
-    owner: &str,
-    repo: &str,
-    key: &str,
-    ip: &str,
-) -> anyhow::Result<usize> {
+pub async fn create_hook(owner: &str, repo: &str, key: &str, ip: &str) -> anyhow::Result<usize> {
     let client = reqwest::Client::new();
     let url = format!("https://api.github.com/repos/{owner}/{repo}/hooks");
+
+    info!("creating webhook at <{url}> with ip=<{ip}>");
     let res = client
         .post(&url)
         .header("Accept", "application/vnd.github+json")
@@ -35,16 +33,19 @@ pub async fn create_hook(
         .header("User-Agent", "deltachat-github-bot")
         .body(format!(
             r#"
-        {{
-            "name": "deltachat-github-bot",
-            "active": true,
-            "config": {{
-                "url": "{ip}",
-                "content_type": "json",
-                "insecure_ssl": "0"
-            }}
-        }}
-        "#,
+{{
+    "name": "web",
+    "active": true,
+    "events": [
+        "issues",
+        "pull_request"
+    ],
+    "config": {{
+        "url": "https://{ip}/receive",
+        "content_type": "json",
+        "insecure_ssl": "0"
+    }}
+}}"#,
         ))
         .send()
         .await?;
@@ -54,9 +55,9 @@ pub async fn create_hook(
         let resp = serde_json::from_str::<CreatedResponse>(&res.text().await?)?;
         Ok(resp.id)
     } else if status == 422 {
-        Err(HookError::AlreadyExists)?
+        Err(HookError::ValidationError)?
     } else {
-        Err(HookError::Unknown)?
+        Err(HookError::Server(status.to_string()))?
     }
 }
 

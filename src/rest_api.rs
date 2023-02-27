@@ -5,7 +5,7 @@ use log::{error, info};
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::shared::Repository;
+use crate::{shared::Repository, PORT};
 
 #[derive(Error, Debug)]
 pub enum HookError {
@@ -41,7 +41,7 @@ pub async fn create_hook(owner: &str, repo: &str, key: &str, ip: &str) -> anyhow
         "pull_request"
     ],
     "config": {{
-        "url": "https://{ip}/receive",
+        "url": "https://{ip}:{PORT}/receive",
         "content_type": "json",
         "insecure_ssl": "0"
     }}

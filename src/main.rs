@@ -9,6 +9,8 @@ pub mod utils;
 use bot::Bot;
 use tokio::signal;
 
+pub const PORT: u32 = 65005;
+
 #[tokio::main]
 async fn main() {
     env_logger::init();

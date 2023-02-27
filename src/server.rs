@@ -6,7 +6,10 @@ use thiserror::Error;
 use tide::{Request, Server as TideServer};
 use tokio::sync::mpsc::Sender;
 
-use crate::shared::{issue::IssueEvent, pr::PREvent, WebhookEvent};
+use crate::{
+    shared::{issue::IssueEvent, pr::PREvent, WebhookEvent},
+    PORT,
+};
 
 #[derive(Error, Debug)]
 enum Error {
@@ -40,8 +43,6 @@ async fn handler(mut req: Request<ServerState>) -> tide::Result {
     Ok("".into())
 }
 
-const ADDR: &str = "0.0.0.0:8080";
-
 impl Server {
     pub fn new(channel: Sender<WebhookEvent>) -> Self {
         let mut server = tide::with_state(ServerState {
@@ -54,7 +55,7 @@ impl Server {
     pub fn start(&self) -> tokio::task::JoinHandle<()> {
         let server = self.server.clone();
         let handle = tokio::spawn(async move {
-            server.listen(ADDR).await.unwrap();
+            server.listen(format!("0.0.0.0{PORT}")).await.unwrap();
         });
         handle
     }

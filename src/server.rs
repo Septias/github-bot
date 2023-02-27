@@ -55,7 +55,7 @@ impl Server {
     pub fn start(&self) -> tokio::task::JoinHandle<()> {
         let server = self.server.clone();
         let handle = tokio::spawn(async move {
-            server.listen(format!("0.0.0.0{PORT}")).await.unwrap();
+            server.listen(format!("0.0.0.0:{PORT}")).await.unwrap();
         });
         handle
     }

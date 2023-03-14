@@ -6,8 +6,8 @@ edition = "2021"
 
 [dependencies]
 anyhow = "^1.0"
-deltachat = { git = "https://github.com/deltachat/deltachat-core-rust"}
-tokio = { version = "^1.21", features = ["rt-multi-thread", "macros", "signal"] }
+deltachat = { git = "https://github.com/deltachat/deltachat-core-rust", branch="sk/missing_key_event"}
+tokio = { version = "^1.21", features = ["rt-multi-thread", "macros", "signal"]}
 tide = "^0.16"
 clap = {version="^4.0", features=["derive", "cargo"]}
 serde_json = "^1.0"

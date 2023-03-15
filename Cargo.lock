@@ -1271,7 +1271,7 @@ checksum = "23d8666cb01533c39dde32bcbab8e227b4ed6679b2c925eba05feabea39508fb"
 [[package]]
 name = "deltachat"
 version = "1.111.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust?branch=sk/missing_key_event#3be1abe831b59a2cf0ed16a3b1b80f562a30ab6b"
+source = "git+https://github.com/deltachat/deltachat-core-rust#6b67f8bcfd9e80a1f98ae2bce1342068526a4b35"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -1337,7 +1337,7 @@ dependencies = [
 [[package]]
 name = "deltachat_derive"
 version = "2.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust?branch=sk/missing_key_event#3be1abe831b59a2cf0ed16a3b1b80f562a30ab6b"
+source = "git+https://github.com/deltachat/deltachat-core-rust#6b67f8bcfd9e80a1f98ae2bce1342068526a4b35"
 dependencies = [
  "quote",
  "syn",
@@ -1816,7 +1816,7 @@ dependencies = [
 [[package]]
 name = "format-flowed"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust?branch=sk/missing_key_event#3be1abe831b59a2cf0ed16a3b1b80f562a30ab6b"
+source = "git+https://github.com/deltachat/deltachat-core-rust#6b67f8bcfd9e80a1f98ae2bce1342068526a4b35"
 
 [[package]]
 name = "futures"
@@ -3618,7 +3618,7 @@ dependencies = [
 [[package]]
 name = "ratelimit"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust?branch=sk/missing_key_event#3be1abe831b59a2cf0ed16a3b1b80f562a30ab6b"
+source = "git+https://github.com/deltachat/deltachat-core-rust#6b67f8bcfd9e80a1f98ae2bce1342068526a4b35"
 
 [[package]]
 name = "redox_syscall"

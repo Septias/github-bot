@@ -3,8 +3,9 @@
 use anyhow::{Context as _, Result};
 use clap::{CommandFactory, FromArgMatches};
 use deltachat::{
-    chat::{send_text_msg, ChatId},
+    chat::{send_text_msg, Chat, ChatId},
     config::Config,
+    constants::Chattype,
     context::Context,
     message::{Message, MsgId},
     stock_str::StockStrings,
@@ -12,7 +13,7 @@ use deltachat::{
 };
 use itertools::Itertools;
 use log::{debug, error, info, warn};
-use std::{collections::HashMap, env, sync::Arc};
+use std::{env, sync::Arc};
 use tokio::sync::mpsc::{self, Receiver};
 
 use crate::{
@@ -162,6 +163,14 @@ impl Bot {
         msg_id: MsgId,
     ) -> Result<()> {
         let msg = Message::load_from_db(ctx, msg_id).await?;
+
+        if let Some(err) = msg.error() {
+            error!("msg has the following error: {err}");
+            if err.as_str() == "Decrypting failed: missing key" {
+                send_text_msg(ctx, chat_id, "Unable to decrypt your message, but this message might have fixed it, so try again.".to_string()).await?;
+            }
+        }
+
         if let Some(text) = msg.get_text() {
             // only react to messages with right keywoard
             if text.starts_with("gh") {
@@ -258,6 +267,11 @@ impl Bot {
                         send_text_msg(ctx, chat_id, err.to_string()).await.unwrap();
                     }
                 };
+            } else {
+                let chat = Chat::load_from_db(ctx, chat_id).await?;
+                if let Chattype::Single = chat.typ {
+                    send_text_msg(ctx, chat_id, "Commands must start with gh".to_string()).await?;
+                }
             }
         }
 

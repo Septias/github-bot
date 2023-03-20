@@ -43,12 +43,16 @@ async fn handler(mut req: Request<ServerState>) -> tide::Result {
     Ok("".into())
 }
 
+async fn get_handler(_req: Request<ServerState>) -> tide::Result {
+    Ok("Hi".into())
+}
+
 impl Server {
     pub fn new(channel: Sender<WebhookEvent>) -> Self {
         let mut server = tide::with_state(ServerState {
             channel: Arc::new(channel),
         });
-        server.at("receive").post(handler);
+        server.at("receive").post(handler).get(get_handler);
         Self { server }
     }
 

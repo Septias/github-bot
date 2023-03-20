@@ -268,9 +268,12 @@ impl Bot {
                     }
                 };
             } else {
-                let chat = Chat::load_from_db(ctx, chat_id).await?;
-                if let Chattype::Single = chat.typ {
-                    send_text_msg(ctx, chat_id, "Commands must start with gh".to_string()).await?;
+                if !chat_id.is_special() {
+                    let chat = Chat::load_from_db(ctx, chat_id).await?;
+                    if let Chattype::Single = chat.typ {
+                        send_text_msg(ctx, chat_id, "Commands must start with gh".to_string())
+                            .await?;
+                    }
                 }
             }
         }

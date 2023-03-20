@@ -15,6 +15,7 @@ enum Cli {
         repo: usize,
 
         Pr {
+            #[arg(value_enum)]
             pr_action: PRAction,
         },
         Issue {
@@ -76,7 +77,7 @@ enum Cli {
 gh repositories add septias github-bot ghp_xyp
 ```
 
-where `ghp_xyp` is a github rest-api-key that can be created like [this](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+where `ghp_xyp` is a github rest-api-key that can be created like [this](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
 
 **Adding an event listener**:
 
@@ -94,11 +95,10 @@ gh repositories list
 
 ### Architecture
 
-- The bot has to be hosted under a public ip to be able to receive rust webhooks.
+- The bot has to be hosted under a public IP to be able to receive github webhooks.
 - The file `server.rs` spins up a `tide` webserver listening on port `0.0.0.0:8080/receive`
-- The repository webhook sends all events to this endpoint where they are parsed and passed to the bot via an channel.
-- The bot simultaneously listenes to client requests issued over the deltachat messanger as well as new webhook events.
-- After receiving a webhook event, the bot distrutes it to all listeners.
+- The repository webhook sends all events to this endpoint where they are parsed and processed.
+- After receiving a webhook event, the bot distributes it to all listeners.
 - The client requests are parsed using `clap`.
 
 ### Files
@@ -106,10 +106,10 @@ gh repositories list
 ```
 .
 ├── src
-│ ├── bot.rs       // main bot code
+│ ├── bot.rs       // bot code
 │ ├── db.rs        // surrealdb-api
 │ ├── main.rs      // spin up bot
-│ ├── parser.rs    // creation of cli using `clap`
+│ ├── parser.rs    // CLI definition using `clap`
 │ ├── queries      // some of the sql-queries used in `db.rs`
 │ ├── rest_api.rs  // interaction with the github rest-api
 │ ├── server.rs    // spin up `tide` server
@@ -127,7 +127,7 @@ where `<addr>` and `<pw>` are some valid login credentials for an email-server.
 #### Testing
 It comes in handy to send webhook-events manually with curl:
 ```bash
-curl -X POST --data "@mock/issue_open.json" localhost:8080/receive --header "X-GitHub-Event: issues"
+curl -X POST --data "mock/issue_open.json" localhost:8080/receive --header "X-GitHub-Event: issues"
 ```
 
 

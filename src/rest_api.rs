@@ -41,7 +41,7 @@ pub async fn create_hook(owner: &str, repo: &str, key: &str, ip: &str) -> anyhow
         "pull_request"
     ],
     "config": {{
-        "url": "https://{ip}:{PORT}/receive",
+        "url": "http://{ip}:{PORT}/receive",
         "content_type": "json",
         "insecure_ssl": "0"
     }}

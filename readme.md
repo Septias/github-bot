@@ -2,6 +2,33 @@
 
 A Deltachat-bot which works as bridge between Deltachat and Github Webhoooks
 
+### Dependencies
+ - libclang-dev
+ - Rust
+
+### Installation
+We use a local Rust install. You can install that like:
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
+sh rustup-init.sh -y
+rm rustup-init.sh
+```
+
+Enable the Rust environment:
+```
+. .cargo/env
+```
+
+After that you can clone the repo:
+```
+git clone https://github.com/Septias/deltachat-github-bot.git
+```
+
+And subsequently run the bot, which the first run will install the required Rust dependencies:
+```
+addr=<email-address> mail_pw=<email-password> cargo r
+```
+
 ### Usage
 
 Users can interact with the bot by issuing `commands`.
@@ -118,7 +145,7 @@ gh repositories list
 ```
 
 ### Development
-Start the bot like this: 
+Start the bot like this:
 ```
 RUST_LOG=info addr=<add> mail_pw=<pw> cargo r
 ```
@@ -129,7 +156,6 @@ It comes in handy to send webhook-events manually with curl:
 ```bash
 curl -X POST --data "mock/issue_open.json" localhost:8080/receive --header "X-GitHub-Event: issues"
 ```
-
 
 ### Further improvement
 

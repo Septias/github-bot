@@ -1,6 +1,6 @@
 pub mod bot;
 pub mod db;
-pub mod parser;
+pub mod cli;
 pub mod server;
 pub mod shared;
 pub mod utils;

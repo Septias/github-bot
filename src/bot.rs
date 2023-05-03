@@ -7,7 +7,7 @@ use deltachat::{
     chatlist::Chatlist,
     config::Config,
     constants::Chattype,
-    context::{self, Context},
+    context::Context,
     message::{Message, MsgId, Viewtype},
     stock_str::StockStrings,
     EventType, Events,
@@ -21,10 +21,10 @@ use tokio::{
 
 use crate::{
     db::DB,
-    parser::{Cli, Commands},
+    cli::{Cli, Commands},
     server::Server,
     shared::AppInfo,
-    utils::{configure_from_env, send_text_to_all},
+    utils::configure_from_env,
 };
 
 /// Internal representation of a git repository that can be subscribed to
@@ -160,7 +160,7 @@ impl Bot {
     /// Handles chat messages from clients
     async fn handle_dc_message(
         ctx: &Context,
-        state: Arc<State>,
+        _state: Arc<State>,
         chat_id: ChatId,
         msg_id: MsgId,
     ) -> Result<()> {
@@ -182,6 +182,7 @@ impl Bot {
 
                         match &res.command {
                             Commands::Download { file } => todo!(),
+                            Commands::Open => todo!(),
                         }
                     }
                     Err(err) => {

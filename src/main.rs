@@ -1,7 +1,6 @@
 pub mod bot;
 pub mod db;
 pub mod parser;
-pub mod rest_api;
 pub mod server;
 pub mod shared;
 pub mod utils;

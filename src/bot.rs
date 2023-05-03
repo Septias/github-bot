@@ -11,18 +11,16 @@ use deltachat::{
     stock_str::StockStrings,
     EventType, Events,
 };
-use itertools::Itertools;
 use log::{debug, error, info, warn};
 use std::{env, sync::Arc};
 use tokio::sync::mpsc::{self, Receiver};
 
 use crate::{
-    db::{Repository, DB},
-    parser::{Cli, Commands, Family},
-    rest_api::{create_hook, get_repository, remove_hook},
+    db::DB,
+    parser::{Cli, Commands},
     server::Server,
-    shared::{issue::IssueEvent, pr::PREvent, Repository as SharedRepo, WebhookEvent},
-    utils::{configure_from_env, send_text_to_all},
+    shared::AppInfo,
+    utils::configure_from_env,
 };
 
 /// Internal representation of a git repository that can be subscribed to
@@ -43,7 +41,7 @@ pub struct State {
 /// Github Bot
 pub struct Bot {
     dc_ctx: Context,
-    hook_receiver: Option<Receiver<WebhookEvent>>,
+    hook_receiver: Option<Receiver<Vec<AppInfo>>>,
     hook_server: Server,
     state: Arc<State>,
 }
@@ -120,7 +118,7 @@ impl Bot {
         let ctx = self.dc_ctx.clone();
         tokio::spawn(async move {
             while let Some(event) = thing_receiver.recv().await {
-                if let Err(e) = Self::handle_webhook(state.clone(), &ctx, event).await {
+                if let Err(e) = Self::handle_manifest_change(state.clone(), &ctx, event).await {
                     error!("{e}")
                 }
             }
@@ -173,94 +171,13 @@ impl Bot {
 
         if let Some(text) = msg.get_text() {
             // only react to messages with right keywoard
-            if text.starts_with("gh") {
+            if text.starts_with("appstore") {
                 match <Cli as CommandFactory>::command().try_get_matches_from(text.split(' ')) {
                     Ok(mut matches) => {
                         let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
 
                         match &res.command {
-                            Commands::Subscribe { .. } => {
-                                info!("adding subscriber");
-                                state.db.add_subscriber(res.command, chat_id).await;
-                                send_text_msg(ctx, chat_id, "Added event listener".to_string())
-                                    .await?;
-                            }
-                            Commands::Unsubscribe { .. } => {
-                                info!("removing subscriber");
-                                state.db.remove_subscriber(res.command, chat_id).await;
-                                send_text_msg(ctx, chat_id, "Removed event listener".to_string())
-                                    .await?;
-                            }
-                            Commands::Repositories { repo_subcommands } => match repo_subcommands {
-                                crate::parser::RepoSubcommands::List => {
-                                    let repos = state.db.get_repository_ids().await?;
-                                    let text = if !repos.is_empty() {
-                                        format!(
-                                            "Available repositories:\n{}",
-                                            repos.iter().join("\n")
-                                        )
-                                    } else {
-                                        "No repositories have been added yet".to_string()
-                                    };
-                                    error!("{text}");
-                                    send_text_msg(ctx, chat_id, text).await?;
-                                }
-                                crate::parser::RepoSubcommands::Add {
-                                    owner,
-                                    repository,
-                                    api_key,
-                                } => match create_hook(owner, repository, api_key, &state.ip).await
-                                {
-                                    Ok(hook_id) => {
-                                        let SharedRepo { id, url, .. } =
-                                            get_repository(owner, repository, api_key).await?;
-                                        state
-                                            .db
-                                            .add_repository(Repository {
-                                                name: repository,
-                                                owner,
-                                                hook_id,
-                                                id,
-                                                url: &url,
-                                            })
-                                            .await?;
-                                        info!("Added new webhook for repository {repository}");
-                                        send_text_msg(
-                                            ctx,
-                                            chat_id,
-                                            "Successfully added webhook".to_string(),
-                                        )
-                                        .await?;
-                                    }
-                                    Err(err) => {
-                                        error!("{err}");
-                                        send_text_msg(ctx, chat_id, err.to_string()).await?;
-                                    }
-                                },
-                                crate::parser::RepoSubcommands::Remove {
-                                    repository,
-                                    api_key,
-                                } => {
-                                    let hook_id = state.db.get_hook_id(*repository).await?;
-                                    let owner = state.db.get_owner(*repository).await.unwrap();
-                                    let repo = state.db.get_name(*repository).await.unwrap();
-                                    match remove_hook(&owner, &repo, hook_id, api_key).await {
-                                        Ok(_) => {
-                                            info!("removed webhook for repo {repository}");
-                                            send_text_msg(
-                                                ctx,
-                                                chat_id,
-                                                "Successfully removed repository".to_string(),
-                                            )
-                                            .await?;
-                                        }
-                                        Err(err) => {
-                                            error!("{err}");
-                                            send_text_msg(ctx, chat_id, err.to_string()).await?;
-                                        }
-                                    }
-                                }
-                            },
+                            Commands::Download { file } => todo!(),
                         }
                     }
                     Err(err) => {
@@ -271,8 +188,12 @@ impl Bot {
                 if !chat_id.is_special() {
                     let chat = Chat::load_from_db(ctx, chat_id).await?;
                     if let Chattype::Single = chat.typ {
-                        send_text_msg(ctx, chat_id, "Commands must start with gh".to_string())
-                            .await?;
+                        send_text_msg(
+                            ctx,
+                            chat_id,
+                            "Commands must start with appstore".to_string(),
+                        )
+                        .await?;
                     }
                 }
             }
@@ -282,61 +203,13 @@ impl Bot {
     }
 
     /// Handle a parsed webhook-event
-    async fn handle_webhook(
+    async fn handle_manifest_change(
         state: Arc<State>,
         ctx: &Context,
-        event: WebhookEvent,
+        event: Vec<AppInfo>,
     ) -> anyhow::Result<()> {
-        info!("Handling webhook event {}", event);
-        match event {
-            WebhookEvent::Issue(IssueEvent {
-                sender,
-                action,
-                repository,
-                issue,
-            }) => {
-                let subs = state
-                    .db
-                    .get_subscribers(
-                        repository.id,
-                        Family::Issue {
-                            issue_action: action,
-                        },
-                    )
-                    .await
-                    .unwrap();
-                send_text_to_all(
-                    &subs,
-                    &format!(
-                        "User {} triggered event `{action}` on issue {}",
-                        sender.login, issue.title
-                    ),
-                    ctx,
-                )
-                .await?;
-            }
-            WebhookEvent::PR(PREvent {
-                action,
-                sender,
-                repository,
-                pull_request: pr,
-            }) => {
-                let subs = state
-                    .db
-                    .get_subscribers(repository.id, Family::Pr { pr_action: action })
-                    .await
-                    .unwrap();
-                send_text_to_all(
-                    &subs,
-                    &format!(
-                        "User {} trigged event `{action}` on PR {}",
-                        sender.login, pr.title
-                    ),
-                    ctx,
-                )
-                .await?;
-            }
-        };
+        info!("Handling webhook event");
+
         Ok(())
     }
 

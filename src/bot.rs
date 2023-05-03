@@ -3,24 +3,28 @@
 use anyhow::{Context as _, Result};
 use clap::{CommandFactory, FromArgMatches};
 use deltachat::{
-    chat::{send_text_msg, Chat, ChatId},
+    chat::{self, send_text_msg, Chat, ChatId},
+    chatlist::Chatlist,
     config::Config,
     constants::Chattype,
-    context::Context,
-    message::{Message, MsgId},
+    context::{self, Context},
+    message::{Message, MsgId, Viewtype},
     stock_str::StockStrings,
     EventType, Events,
 };
 use log::{debug, error, info, warn};
-use std::{env, sync::Arc};
-use tokio::sync::mpsc::{self, Receiver};
+use std::{collections::HashMap, env, sync::Arc};
+use tokio::{
+    fs,
+    sync::mpsc::{self, Receiver},
+};
 
 use crate::{
     db::DB,
     parser::{Cli, Commands},
     server::Server,
     shared::AppInfo,
-    utils::configure_from_env,
+    utils::{configure_from_env, send_text_to_all},
 };
 
 /// Internal representation of a git repository that can be subscribed to
@@ -113,11 +117,11 @@ impl Bot {
         info!("initiated webhook server (3/4)");
 
         // start webhook-handler
-        let mut thing_receiver = self.hook_receiver.take().unwrap();
+        let mut manifest_update_receiver = self.hook_receiver.take().unwrap();
         let state = self.state.clone();
         let ctx = self.dc_ctx.clone();
         tokio::spawn(async move {
-            while let Some(event) = thing_receiver.recv().await {
+            while let Some(event) = manifest_update_receiver.recv().await {
                 if let Err(e) = Self::handle_manifest_change(state.clone(), &ctx, event).await {
                     error!("{e}")
                 }
@@ -191,7 +195,7 @@ impl Bot {
                         send_text_msg(
                             ctx,
                             chat_id,
-                            "Commands must start with appstore".to_string(),
+                            "Commands must start with `appstore`".to_string(),
                         )
                         .await?;
                     }
@@ -204,17 +208,56 @@ impl Bot {
 
     /// Handle a parsed webhook-event
     async fn handle_manifest_change(
-        state: Arc<State>,
+        _state: Arc<State>,
         ctx: &Context,
-        event: Vec<AppInfo>,
+        manifest: Vec<AppInfo>,
     ) -> anyhow::Result<()> {
         info!("Handling webhook event");
+        let old_manifest_string = fs::read_to_string("./appstore_manifest.json")
+            .await
+            .unwrap_or_default();
+        let old_manifest: Vec<AppInfo> =
+            serde_json::from_str(&old_manifest_string).context("Failed to parse old manifest")?;
+        let versions: HashMap<_, _> = old_manifest
+            .into_iter()
+            .map(|appinfo| (appinfo.source_code_url, appinfo.version))
+            .collect();
+
+        let updated_apps = manifest.into_iter().filter(|app| {
+            versions
+                .get(&app.source_code_url)
+                .and_then(|version| Some(*version == app.version))
+                .unwrap_or(true)
+        });
+
+        let update_manifest = serde_json::to_string(&updated_apps.collect::<Vec<_>>())?;
+        // TODO: build all updated apps
+
+        let chatlist = Chatlist::try_load(ctx, 0, None, None).await?;
+
+        for (chat_id, _) in chatlist.iter() {
+            let mut msg_ids = chat::get_chat_media(
+                ctx,
+                Some(*chat_id),
+                Viewtype::Webxdc,
+                Viewtype::Unknown,
+                Viewtype::Unknown,
+            )
+            .await?;
+            if let Some(msg_id) = msg_ids.pop() {
+                ctx.send_webxdc_status_update(
+                    msg_id,
+                    &update_manifest,
+                    &format!("updated some webxdc messages: {update_manifest}"),
+                )
+                .await?;
+            }
+        }
 
         Ok(())
     }
 
     pub async fn stop(self) {
-        self.dc_ctx.stop_io().await;
         self.hook_server.stop()
     }
 }
